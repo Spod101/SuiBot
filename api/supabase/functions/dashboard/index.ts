@@ -486,14 +486,8 @@ async function handleCreateUpdate(request: Request) {
 }
 
 async function handleTelegramWebhook(request: Request) {
-  const expectedSecret = String(Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "").trim();
-  const providedSecret = request.headers.get("x-telegram-bot-api-secret-token");
-
-  // Secret verification is optional. If header is absent, allow the request.
-  // If header is present and a secret is configured, it must match.
-  if (providedSecret && expectedSecret && expectedSecret !== providedSecret) {
-    return jsonResponse({ error: "Invalid webhook secret" }, 401);
-  }
+  // Webhook secret checks are intentionally disabled.
+  // Telegram requests are accepted without token validation.
 
   const update = await request.json().catch(() => null);
   if (!update) {
