@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sui × DEVCON HQ Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sui-blue: #4DA2FF; --sui-teal: #00D4AA;
+    --bg: #080C14; --bg2: #0D1420; --bg3: #131C2E;
+    --border: rgba(77,162,255,0.15); --border-bright: rgba(77,162,255,0.4);
+    --text: #E8F0FF; --text-dim: #7A8BA8;
+    --red: #FF4D6A; --yellow: #FFB547; --green: #00D4AA; --white: #FFFFFF;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(77,162,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(77,162,255,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .glow-orb { position:fixed; width:600px; height:600px; border-radius:50%; background:radial-gradient(circle,rgba(77,162,255,0.06) 0%,transparent 70%); top:-200px; right:-200px; pointer-events:none; z-index:0; }
+  .glow-orb2 { position:fixed; width:400px; height:400px; border-radius:50%; background:radial-gradient(circle,rgba(0,212,170,0.05) 0%,transparent 70%); bottom:-100px; left:-100px; pointer-events:none; z-index:0; }
+  .wrapper { position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:28px 20px 80px; }
+
+  /* ---- HEADER ---- */
+  header { display:flex; flex-direction:column; gap:16px; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+  .header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .header-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(77,162,255,0.1); border:1px solid var(--border-bright); border-radius:4px; padding:4px 12px; font-family:'Space Mono',monospace; font-size:10px; color:var(--sui-blue); letter-spacing:.1em; text-transform:uppercase; width:fit-content; }
+  .header-badge::before { content:'●'; color:var(--sui-teal); animation:pulse 2s infinite; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1 { font-size:clamp(22px,4vw,38px); font-weight:800; line-height:1.1; color:var(--white); letter-spacing:-.02em; margin:5px 0; }
+  h1 span { color:var(--sui-blue); }
+  .header-meta { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); line-height:1.9; }
+  .header-live { font-family:'Space Mono',monospace; font-size:10px; color:var(--sui-teal); background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.3); padding:5px 12px; border-radius:6px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; align-self:flex-start; }
+
+  /* KPI pills — full-width scrollable row */
+  .kpi-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; -ms-overflow-style:none; }
+  .kpi-row::-webkit-scrollbar { display:none; }
+  .kpi-pill { flex-shrink:0; background:var(--bg3); border:1px solid var(--border); border-radius:7px; padding:9px 14px; text-align:center; min-width:80px; }
+  .kpi-pill .num { display:block; font-size:18px; font-weight:800; color:var(--sui-blue); font-family:'Space Mono',monospace; line-height:1.1; }
+  .kpi-pill .lbl { display:block; font-size:8px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; white-space:nowrap; }
+  .kpi-pill--teal { border-color:rgba(0,212,170,0.25); }
+  .kpi-pill--teal .num { color:var(--sui-teal); }
+  .kpi-pill--green { border-color:rgba(0,212,170,0.4); }
+  .kpi-pill--green .num { color:var(--green); }
+  .kpi-pill--yellow { border-color:rgba(255,181,71,0.3); }
+  .kpi-pill--yellow .num { color:var(--yellow); }
+  .kpi-pill--red { border-color:rgba(255,77,106,0.25); }
+  .kpi-pill--red .num { color:var(--red); }
+  .kpi-pill--blue .num { color:var(--sui-blue); }
+
+  /* ---- NAV TABS ---- */
+  .tabs { display:flex; gap:3px; margin-bottom:28px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:4px; overflow-x:auto; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab { flex-shrink:0; padding:9px 16px; border-radius:5px; font-size:11px; font-weight:700; cursor:pointer; border:none; background:transparent; color:var(--text-dim); transition:all .2s; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; font-family:'Syne',sans-serif; }
+  .tab:hover { color:var(--text); background:rgba(77,162,255,0.08); }
+  .tab.active { background:var(--sui-blue); color:var(--bg); }
+  .tab.tab-chapter { background:rgba(0,212,170,0.08); color:var(--sui-teal); border:1px solid rgba(0,212,170,0.2); }
+  .tab.tab-chapter:hover { background:rgba(0,212,170,0.15); }
+  .tab.tab-chapter.active { background:var(--sui-teal); color:var(--bg); border-color:var(--sui-teal); }
+
+  /* ---- PANELS ---- */
+  .panel { display:none; }
+  .panel.active { display:block; animation:fadeIn .3s ease; }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ---- COMMON ---- */
+  .section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--sui-blue); margin-bottom:14px; font-family:'Space Mono',monospace; display:flex; align-items:center; gap:8px; }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:18px; transition:border-color .2s; }
+  .card:hover { border-color:var(--border-bright); }
+  .mb-16 { margin-bottom:16px; }
+  .mb-20 { margin-bottom:20px; }
+  .mb-0 { margin-bottom:0; }
+  .divider { height:1px; background:var(--border); margin:14px 0; }
+  .info-box { background:rgba(77,162,255,0.06); border:1px solid rgba(77,162,255,0.2); border-radius:8px; padding:11px 14px; font-size:12px; color:var(--text-dim); line-height:1.7; margin-bottom:16px; }
+  .info-box strong { color:var(--sui-blue); }
+  .warn-box { background:rgba(255,77,106,0.07); border:1px solid rgba(255,77,106,0.25); border-radius:8px; padding:11px 14px; font-size:12px; color:var(--text-dim); line-height:1.7; margin-bottom:14px; }
+  .warn-box strong { color:var(--red); }
+  .note-box { background:rgba(255,181,71,0.06); border:1px solid rgba(255,181,71,0.25); border-radius:8px; padding:11px 14px; font-size:12px; color:var(--text-dim); line-height:1.7; margin-bottom:14px; }
+  .note-box strong { color:var(--yellow); }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media(max-width:900px){.grid-2,.grid-3,.grid-4,.prog-grid,.camp-grid,.todo-grid{grid-template-columns:1fr;}}
+
+  /* ---- BADGES ---- */
+  .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:700; font-family:'Space Mono',monospace; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+  .badge-done { background:rgba(0,212,170,0.12); color:var(--green); border:1px solid rgba(0,212,170,0.3); }
+  .badge-warn { background:rgba(255,181,71,0.12); color:var(--yellow); border:1px solid rgba(255,181,71,0.3); }
+  .badge-risk { background:rgba(255,77,106,0.12); color:var(--red); border:1px solid rgba(255,77,106,0.3); }
+  .badge-pending { background:rgba(77,162,255,0.1); color:var(--sui-blue); border:1px solid rgba(77,162,255,0.3); }
+  .badge-tbc { background:rgba(120,100,255,0.12); color:#A78BFA; border:1px solid rgba(120,100,255,0.3); }
+  .badge-cancelled { background:rgba(120,120,120,0.12); color:#888; border:1px solid rgba(120,120,120,0.3); }
+
+  /* ---- TABLES ---- */
+  .tbl-wrap { overflow-x:auto; border-radius:8px; border:1px solid var(--border); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead tr { background:var(--bg3); }
+  th { padding:10px 13px; text-align:left; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; border-bottom:1px solid var(--border); }
+  td { padding:10px 13px; border-bottom:1px solid rgba(77,162,255,0.06); vertical-align:middle; line-height:1.5; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(77,162,255,0.03); }
+  .td-mono { font-family:'Space Mono',monospace; font-size:11px; }
+  .td-dim { color:var(--text-dim); font-size:11px; }
+
+  /* ---- PROGRESS ---- */
+  .progress-bar { height:5px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--sui-blue),var(--sui-teal)); }
+
+  /* ---- COUNTDOWN ---- */
+  .countdown-badge { display:inline-flex; align-items:center; gap:6px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:6px 12px; font-family:'Space Mono',monospace; font-size:11px; color:var(--text); margin-top:8px; }
+  .countdown-badge .days { font-size:20px; font-weight:700; color:var(--sui-blue); line-height:1; }
+  .countdown-badge.urgent .days { color:var(--red); }
+  .countdown-badge.soon .days { color:var(--yellow); }
+  .countdown-badge.far .days { color:var(--sui-teal); }
+  .countdown-badge.tbc .days { color:#A78BFA; }
+
+  /* ---- CHAPTER SUBPAGE HEADER ---- */
+  .ch-hero { border:1px solid var(--border); border-radius:12px; padding:24px; background:var(--bg2); margin-bottom:20px; position:relative; overflow:hidden; }
+  .ch-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,rgba(77,162,255,0.08) 0%,transparent 70%); pointer-events:none; }
+  .ch-hero-num { font-family:'Space Mono',monospace; font-size:64px; font-weight:700; color:rgba(77,162,255,0.08); position:absolute; top:10px; right:24px; line-height:1; }
+  .ch-hero-title { font-size:clamp(20px,3vw,30px); font-weight:800; color:var(--white); margin-bottom:4px; }
+  .ch-hero-sub { font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); line-height:2; }
+  .ch-meta-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-top:16px; }
+  .ch-meta-item { background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:10px 12px; }
+  .ch-meta-label { font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); font-family:'Space Mono',monospace; }
+  .ch-meta-value { font-size:13px; font-weight:700; color:var(--text); margin-top:3px; }
+  .ch-meta-value.blue { color:var(--sui-blue); }
+  .ch-meta-value.teal { color:var(--sui-teal); }
+  .ch-meta-value.yellow { color:var(--yellow); }
+  .ch-meta-value.red { color:var(--red); }
+  .ch-meta-value.purple { color:#A78BFA; }
+
+  /* ---- TASK ROWS ---- */
+  .task-row { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid rgba(77,162,255,0.05); font-size:12px; }
+  .task-row:last-child { border-bottom:none; }
+  .task-owner { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; }
+  .task-deadline { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; }
+
+  /* ---- RISKS ---- */
+  .risk-row { display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:start; padding:13px; border-radius:8px; background:var(--bg3); margin-bottom:7px; border:1px solid var(--border); transition:border-color .2s; }
+  .risk-row:hover { border-color:var(--border-bright); }
+  .risk-num { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); }
+  .risk-title { font-size:12px; font-weight:600; color:var(--text); line-height:1.4; }
+  .risk-desc { font-size:11px; color:var(--text-dim); margin-top:3px; line-height:1.6; }
+  .sev { display:inline-flex; font-family:'Space Mono',monospace; font-size:9px; font-weight:700; padding:2px 7px; border-radius:3px; text-transform:uppercase; white-space:nowrap; }
+  .sev-high { background:rgba(255,77,106,0.15); color:var(--red); }
+  .sev-med { background:rgba(255,181,71,0.15); color:var(--yellow); }
+  .sev-low { background:rgba(0,212,170,0.15); color:var(--green); }
+
+  /* ---- MERCH ---- */
+  .vkit-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(77,162,255,0.06); font-size:12px; gap:8px; }
+  .vkit-item:last-child { border-bottom:none; }
+
+  /* ---- CONTACTS ---- */
+  .contact-card { display:flex; align-items:center; gap:12px; padding:13px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; transition:border-color .2s; }
+  .contact-card:hover { border-color:var(--border-bright); }
+  .contact-avatar { width:36px; height:36px; border-radius:7px; background:rgba(77,162,255,0.15); border:1px solid rgba(77,162,255,0.3); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .contact-name { font-size:12px; font-weight:700; }
+  .contact-role { font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .contact-handle { font-family:'Space Mono',monospace; font-size:10px; color:var(--sui-blue); margin-top:2px; }
+
+  /* ---- PAX ROWS ---- */
+  .pax-row { display:grid; grid-template-columns:160px 1fr 70px; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid rgba(77,162,255,0.06); }
+  .pax-row:last-child { border-bottom:none; }
+  .pax-label { font-size:12px; font-weight:600; }
+  .pax-sub { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; margin-top:2px; }
+  .pax-count { font-family:'Space Mono',monospace; font-size:12px; text-align:right; color:var(--sui-blue); }
+
+  /* ---- TIMELINE ---- */
+  .timeline { position:relative; padding-left:24px; }
+  .timeline::before { content:''; position:absolute; left:6px; top:8px; bottom:8px; width:1px; background:var(--border); }
+  .tl-item { position:relative; margin-bottom:16px; }
+  .tl-dot { position:absolute; left:-21px; top:4px; width:9px; height:9px; border-radius:50%; background:var(--sui-blue); border:2px solid var(--bg); }
+  .tl-dot.done { background:var(--sui-teal); }
+  .tl-dot.warn { background:var(--yellow); }
+  .tl-time { font-family:'Space Mono',monospace; font-size:9px; color:var(--sui-blue); font-weight:700; }
+  .tl-title { font-size:12px; font-weight:700; margin:2px 0; }
+  .tl-desc { font-size:11px; color:var(--text-dim); }
+
+  /* ---- STEP BADGE ---- */
+  .step-badge { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:rgba(77,162,255,0.12); border:1px solid rgba(77,162,255,0.3); font-family:'Space Mono',monospace; font-size:10px; font-weight:700; color:var(--sui-blue); flex-shrink:0; }
+
+  /* ---- MILESTONE TABLE ---- */
+  .milestone-grid { overflow-x:auto; border-radius:10px; border:1px solid var(--border); }
+  .milestone-table { width:100%; border-collapse:collapse; font-size:11px; min-width:900px; }
+  .milestone-table th { padding:9px 11px; text-align:center; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:var(--bg3); }
+  .milestone-table th.row-header { text-align:left; background:var(--bg3); min-width:170px; }
+  .milestone-table th.q2-col { background:rgba(255,181,71,0.08); color:var(--yellow); border-left:2px solid rgba(255,181,71,0.4); border-right:2px solid rgba(255,181,71,0.4); }
+  .milestone-table td { padding:9px 11px; border-bottom:1px solid rgba(77,162,255,0.06); border-right:1px solid rgba(77,162,255,0.06); vertical-align:middle; text-align:center; font-size:11px; color:var(--text-dim); }
+  .milestone-table td.row-header { text-align:left; font-weight:600; color:var(--text); background:rgba(77,162,255,0.03); font-size:12px; padding:11px 12px; border-right:1px solid var(--border); }
+  .milestone-table td.q2-col { background:rgba(255,181,71,0.04); border-left:2px solid rgba(255,181,71,0.2); border-right:2px solid rgba(255,181,71,0.2); }
+  .milestone-table tr:last-child td { border-bottom:none; }
+  .milestone-table tr:hover td { background:rgba(77,162,255,0.03); }
+  .milestone-table tr:hover td.row-header { background:rgba(77,162,255,0.06); }
+  .cell-done { color:var(--green); font-weight:600; }
+  .cell-active { color:var(--yellow); font-weight:600; }
+  .cell-upcoming { color:var(--text-dim); }
+
+  /* ---- LINKS SECTION ---- */
+  .links-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+  .link-card { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; text-decoration:none; color:inherit; transition:all .2s; cursor:pointer; }
+  .link-card:hover { border-color:var(--border-bright); background:var(--bg3); transform:translateY(-1px); }
+  .link-icon { width:36px; height:36px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .link-icon-blue { background:rgba(77,162,255,0.12); border:1px solid rgba(77,162,255,0.25); }
+  .link-icon-teal { background:rgba(0,212,170,0.12); border:1px solid rgba(0,212,170,0.25); }
+  .link-icon-yellow { background:rgba(255,181,71,0.12); border:1px solid rgba(255,181,71,0.25); }
+  .link-icon-purple { background:rgba(120,100,255,0.12); border:1px solid rgba(120,100,255,0.25); }
+  .link-name { font-size:13px; font-weight:700; color:var(--text); }
+  .link-desc { font-size:11px; color:var(--text-dim); margin-top:2px; font-family:'Space Mono',monospace; }
+  .link-ext { font-size:10px; color:var(--sui-blue); margin-top:3px; word-break:break-all; }
+
+  /* ---- CHAPTER QUICK NAV ---- */
+  .ch-nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .ch-nav-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; color:var(--text-dim); transition:all .2s; font-family:'Syne',sans-serif; text-decoration:none; }
+  .ch-nav-btn:hover { border-color:var(--border-bright); color:var(--text); }
+  .ch-nav-btn.current { background:rgba(0,212,170,0.1); border-color:rgba(0,212,170,0.4); color:var(--sui-teal); }
+  .ch-nav-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dot-done { background:var(--green); }
+  .dot-warn { background:var(--yellow); }
+  .dot-risk { background:var(--red); }
+  .dot-tbc { background:#A78BFA; }
+  .dot-pending { background:var(--sui-blue); }
+
+  /* BACK BUTTON */
+  .back-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; color:var(--text-dim); transition:all .2s; font-family:'Space Mono',monospace; margin-bottom:16px; }
+  .back-btn:hover { color:var(--text); border-color:var(--border-bright); }
+
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-track{background:var(--bg2);}
+  ::-webkit-scrollbar-thumb{background:rgba(77,162,255,0.3);border-radius:3px;}
+  .footer-note { text-align:center; font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:48px; padding-top:20px; border-top:1px solid var(--border); line-height:2; }
+
+  /* ---- LIVE OPS ---- */
+  .live-metric { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .live-metric__num { font-size:24px; font-weight:800; font-family:'Space Mono',monospace; color:var(--sui-teal); line-height:1; }
+  .live-metric__label { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-top:5px; }
+  .live-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:14px; }
+  .live-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .live-form textarea { grid-column:1/-1; min-height:84px; }
+  .live-form .full { grid-column:1/-1; }
+  .input-dark { width:100%; padding:9px 10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Space Mono',monospace; font-size:11px; }
+  .input-dark:focus { outline:none; border-color:var(--border-bright); }
+  .btn-primary { border:none; background:linear-gradient(90deg,var(--sui-blue),var(--sui-teal)); color:var(--bg); border-radius:6px; font-weight:800; font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:10px 14px; cursor:pointer; }
+  .btn-primary:disabled { opacity:.65; cursor:not-allowed; }
+  .live-status { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; margin-top:8px; }
+  .live-feed { display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; }
+  .live-feed-item { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px; }
+  .live-feed-item__title { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .live-feed-item__meta { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; line-height:1.7; }
+  @media(max-width:700px){ .live-form { grid-template-columns:1fr; } }
+  @media(max-width:600px){
+    .wrapper { padding:16px 14px 60px; }
+    .task-row { grid-template-columns:1fr; gap:6px; }
+    .risk-row { grid-template-columns:1fr; gap:6px; }
+    .pax-row { grid-template-columns:1fr; gap:4px; }
+    .ch-hero-num { display:none; }
+    .ch-meta-grid { grid-template-columns:repeat(2,1fr) !important; }
+    .prog-grid { grid-template-columns:1fr; }
+    .camp-grid { grid-template-columns:1fr; }
+    .todo-grid { grid-template-columns:1fr; }
+    .kpi-strip { grid-template-columns:repeat(3,1fr); }
+    .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; }
+    .ch-quicknav__btns { gap:6px; }
+    .ch-qbtn { font-size:10px; padding:6px 10px; }
+    .section-title { font-size:9px; }
+    h1 { font-size:22px; }
+  }
+  @media(max-width:480px){
+    .kpi-strip { grid-template-columns:repeat(2,1fr); }
+  }
+
+  /* ---- DSU HEADER ---- */
+  .dsu-header { background:var(--bg2); border:1px solid rgba(77,162,255,0.25); border-radius:12px; overflow:hidden; }
+  .dsu-topline { height:2px; background:linear-gradient(90deg,var(--sui-blue),var(--sui-teal),var(--sui-blue)); }
+  .dsu-inner { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:16px 20px; }
+  .dsu-eyebrow { font-family:'Space Mono',monospace; font-size:9px; color:var(--sui-blue); letter-spacing:.15em; text-transform:uppercase; margin-bottom:4px; }
+  .dsu-date { font-size:20px; font-weight:800; color:var(--white); }
+  .dsu-sub { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:3px; }
+  .dsu-live-badge { font-family:'Space Mono',monospace; font-size:10px; color:var(--sui-teal); background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.3); padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; align-self:flex-start; }
+
+  /* ---- PROG CARDS ---- */
+  .prog-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:640px){ .prog-grid { grid-template-columns:1fr; } }
+  .prog-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; position:relative; overflow:hidden; }
+  .prog-card--blue { border-color:rgba(77,162,255,0.3); }
+  .prog-card--yellow { border-color:rgba(255,181,71,0.3); }
+  .prog-card__accent { position:absolute; top:0; left:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+  .prog-card__accent--blue { background:var(--sui-blue); }
+  .prog-card__accent--yellow { background:var(--yellow); }
+  .prog-card__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; font-family:'Space Mono',monospace; margin-bottom:8px; }
+  .prog-card--blue .prog-card__label { color:var(--sui-blue); }
+  .prog-card--yellow .prog-card__label { color:var(--yellow); }
+  .prog-card__num { display:flex; align-items:baseline; gap:5px; margin-bottom:8px; }
+  .prog-big { font-size:38px; font-weight:800; font-family:'Space Mono',monospace; color:var(--sui-blue); line-height:1; }
+  .prog-big--yellow { color:var(--yellow); }
+  .prog-denom { font-size:18px; font-weight:800; font-family:'Space Mono',monospace; color:var(--text-dim); }
+  .prog-unit { font-size:11px; color:var(--text-dim); margin-left:4px; }
+  .prog-card__bar { margin-bottom:10px; }
+  .prog-card__list { display:flex; flex-direction:column; gap:4px; }
+  .prog-item { display:flex; align-items:center; gap:7px; font-size:11px; }
+  .prog-item span { color:var(--text-dim); }
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dot--green { background:var(--green); }
+  .dot--blue { background:var(--sui-blue); }
+  .dot--teal { background:var(--sui-teal); }
+  .dot--yellow { background:var(--yellow); }
+  em { font-style:normal; font-size:10px; font-family:'Space Mono',monospace; }
+  .tag-done { color:var(--green); }
+  .tag-blue { color:var(--sui-blue); }
+  .tag-teal { color:var(--sui-teal); }
+  .tag-warn { color:var(--yellow); }
+
+  /* ---- KPI STRIP ---- */
+  .kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:8px; }
+  .kpi-stat { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:11px 10px; text-align:center; }
+  .kpi-stat--highlight-teal { border-color:rgba(0,212,170,0.3); }
+  .kpi-stat--highlight-green { border-color:rgba(0,212,170,0.5); }
+  .kpi-stat--highlight-yellow { border-color:rgba(255,181,71,0.3); }
+  .kpi-stat--highlight-red { border-color:rgba(255,77,106,0.25); }
+  .kpi-stat__num { font-size:20px; font-weight:800; font-family:'Space Mono',monospace; line-height:1; }
+  .kpi-stat__num--teal { color:var(--sui-teal); }
+  .kpi-stat__num--green { color:var(--green); }
+  .kpi-stat__num--yellow { color:var(--yellow); }
+  .kpi-stat__num--red { color:var(--red); }
+  .kpi-stat__num--purple { color:#A78BFA; }
+  .kpi-stat__lbl { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; }
+  .kpi-stat__sub { font-size:9px; color:var(--text-dim); margin-top:2px; font-family:'Space Mono',monospace; }
+
+  /* ---- CAMP CARDS ---- */
+  .camp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+  .camp-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; border-left-width:3px; }
+  .camp-card--blue { border-left-color:var(--sui-blue); }
+  .camp-card--teal { border-left-color:var(--sui-teal); }
+  .camp-card--yellow { border-left-color:var(--yellow); }
+  .camp-card--purple { border-left-color:#A78BFA; }
+  .camp-card__head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+  .camp-card__name { font-size:13px; font-weight:800; color:var(--white); }
+  .camp-card__venue { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .camp-card__date { font-family:'Space Mono',monospace; font-size:11px; color:var(--sui-blue); margin-bottom:5px; }
+  .camp-card__date-note { font-family:'Space Mono',monospace; font-size:10px; color:var(--yellow); margin-bottom:5px; }
+  .camp-card__bar { margin-bottom:5px; }
+  .camp-card__cd { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-bottom:10px; }
+  .camp-card__todos { border-top:1px solid var(--border); padding-top:10px; display:flex; flex-direction:column; gap:5px; }
+
+  /* ---- RISK ALERTS ---- */
+  .risk-list { display:flex; flex-direction:column; gap:8px; }
+  .risk-alert { display:flex; gap:12px; align-items:flex-start; padding:13px 14px; border-radius:8px; }
+  .risk-alert--red { background:rgba(255,77,106,0.07); border:1px solid rgba(255,77,106,0.25); }
+  .risk-alert--purple { background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.25); }
+  .risk-alert--yellow { background:rgba(255,181,71,0.07); border:1px solid rgba(255,181,71,0.25); }
+  .risk-alert__icon { font-size:16px; flex-shrink:0; line-height:1.4; }
+  .risk-alert__title { font-size:13px; font-weight:700; color:var(--red); margin-bottom:3px; }
+  .risk-alert__body { font-size:12px; color:var(--text-dim); line-height:1.6; }
+  .risk-alert__meta { margin-top:6px; font-family:'Space Mono',monospace; font-size:10px; color:var(--red); }
+
+  /* ---- T-MINUS CHECKLIST ---- */
+  .tminus-wrap { margin-bottom:16px; }
+  .tminus-legend { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; padding:12px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; }
+  .tminus-legend__item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim); }
+  .tminus-legend__label { font-family:'Space Mono',monospace; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; }
+  .tminus-legend__label--pre { background:rgba(0,212,170,0.12); color:var(--green); }
+  .tminus-legend__label--now { background:rgba(255,77,106,0.12); color:var(--red); }
+  .tminus-legend__label--num { background:rgba(77,162,255,0.12); color:var(--sui-blue); }
+  .tminus-legend__label--event { background:rgba(0,212,170,0.12); color:var(--sui-teal); }
+  .tminus-legend__label--post { background:rgba(255,181,71,0.12); color:var(--yellow); }
+  .tminus-row { display:grid; grid-template-columns:90px 1fr auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(77,162,255,0.06); }
+  .tminus-row:last-child { border-bottom:none; }
+  .tminus-row--done { opacity:.6; }
+  .tminus-row--overdue .tminus-label { color:var(--red); }
+  .tminus-row--urgent .tminus-label { color:var(--yellow); }
+  .tminus-row--upcoming .tminus-label { color:var(--sui-blue); }
+  .tminus-label { font-family:'Space Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+  .tminus-date { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); }
+  .tminus-task { font-size:12px; }
+  .tminus-task b { color:var(--text); }
+  .tminus-task span { color:var(--text-dim); }
+  @media(max-width:600px){ .tminus-row { grid-template-columns:70px 1fr; } .tminus-row > .badge { grid-column:2; } .tminus-legend { gap:6px; } }
+  .todo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+  .todo-camp-label { font-size:10px; font-weight:700; font-family:'Space Mono',monospace; text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
+  .todo-item { display:flex; align-items:flex-start; gap:8px; font-size:12px; padding:3px 0; }
+  .todo-item--urgent .todo-arrow { color:var(--red) !important; }
+  .todo-arrow { flex-shrink:0; margin-top:1px; color:var(--yellow); font-weight:700; }
+  .todo-arrow--red { color:var(--red); }
+
+  /* ---- CHAPTER QUICK NAV ---- */
+  .ch-quicknav { padding:14px 16px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; }
+  .ch-quicknav__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); font-family:'Space Mono',monospace; margin-bottom:10px; }
+  .ch-quicknav__btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .ch-qbtn { padding:7px 13px; border-radius:5px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; transition:all .2s; border:1px solid; }
+  .ch-qbtn--teal { background:rgba(0,212,170,0.1); border-color:rgba(0,212,170,0.3); color:var(--sui-teal); }
+  .ch-qbtn--yellow { background:rgba(255,181,71,0.1); border-color:rgba(255,181,71,0.3); color:var(--yellow); }
+  .ch-qbtn--blue { background:rgba(77,162,255,0.1); border-color:rgba(77,162,255,0.3); color:var(--sui-blue); }
+  .ch-qbtn--purple { background:rgba(167,139,250,0.1); border-color:rgba(167,139,250,0.3); color:#A78BFA; }
+  .ch-qbtn:hover { opacity:.8; transform:translateY(-1px); }
+</style>
+</head>
+<body>
+<div class="glow-orb"></div>
+<div class="glow-orb2"></div>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="header-badge">Sui × DEVCON · Live Tracker · Apr 13, 2026</div>
+        <h1>Build Beyond DEVCON <span>× Sui</span></h1>
+        <div class="header-meta">
+          Partnership Tracker · Owner: Dom De Leon (ExDir) · Jedd Fernando (Ops Manager)<br>
+          Q2 Narrative Report: <strong style="color:var(--yellow)">June 30, 2026</strong> → Sui Foundation
+        </div>
+      </div>
+      <div class="header-live" style="display:none;"></div>
+    </div>
+  </header>
+
+  <!-- MAIN TABS -->
+  <div class="tabs" id="main-tabs">
+    <button class="tab" onclick="switchTab('dsu',this)">📝 DSU Apr 13</button>
+    <button class="tab" onclick="switchTab('kpi',this)">📊 KPI</button>
+    <button class="tab" onclick="switchTab('milestones',this)">🗓 Partnership KPIs</button>
+    <button class="tab" onclick="switchTab('chapters',this)">📋 All Chapters</button>
+    <button class="tab" onclick="switchTab('risks',this)">⚠️ Risks</button>
+    <button class="tab" onclick="switchTab('merch',this)">📦 Merch</button>
+    <button class="tab" onclick="switchTab('links',this)">🔗 All Links</button>
+    <button class="tab" onclick="switchTab('contacts',this)">👥 Contacts</button>
+    <button class="tab" onclick="switchTab('content',this)">💻 Content</button>
+    <button class="tab tab-chapter" onclick="showChapter('manila')">Ch1 Manila</button>
+    <button class="tab tab-chapter" onclick="showChapter('tacloban')">Ch2 Tacloban</button>
+    <button class="tab tab-chapter" onclick="showChapter('iloilo')">Ch3 Iloilo</button>
+    <button class="tab tab-chapter" onclick="showChapter('bukidnon')">Ch4 Bukidnon</button>
+    <button class="tab tab-chapter" onclick="showChapter('pampanga')">Ch5 Pampanga</button>
+    <button class="tab tab-chapter" onclick="showChapter('laguna')">Ch6 Laguna</button>
+  </div>
+
+  <div class="card mb-20" id="live-ops-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div class="section-title" style="margin-bottom:0;">🔄 Live Ops Sync (Supabase + Telegram)</div>
+      <div id="api-status" class="badge badge-pending">API: Checking...</div>
+    </div>
+    <div class="live-grid">
+      <div class="live-metric"><div class="live-metric__num" id="metric-total-updates">0</div><div class="live-metric__label">Total Updates</div></div>
+      <div class="live-metric"><div class="live-metric__num" id="metric-completed">0</div><div class="live-metric__label">Completed</div></div>
+      <div class="live-metric"><div class="live-metric__num" id="metric-in-progress">0</div><div class="live-metric__label">In Progress</div></div>
+      <div class="live-metric"><div class="live-metric__num" id="metric-open-risks">0</div><div class="live-metric__label">Open Risks</div></div>
+      <div class="live-metric"><div class="live-metric__num" id="metric-pax-actual">0</div><div class="live-metric__label">Pax Actual</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card mb-0">
+        <div class="section-title">Log New Update</div>
+        <form id="live-update-form" class="live-form">
+          <input class="input-dark" name="chapter" placeholder="Chapter (e.g. Iloilo)" required>
+          <input class="input-dark" name="owner" placeholder="Owner (e.g. Ted)" required>
+          <input class="input-dark" name="title" placeholder="Update title" required>
+          <select class="input-dark" name="status" required>
+            <option value="">Status</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+            <option>Pending</option>
+            <option>Blocked</option>
+          </select>
+          <input class="input-dark" type="date" name="event_date">
+          <label class="input-dark" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" name="is_risk"> Mark as risk</label>
+          <input class="input-dark" type="number" name="pax_target" placeholder="Pax target">
+          <input class="input-dark" type="number" name="pax_actual" placeholder="Pax actual">
+          <textarea class="input-dark" name="notes" placeholder="Notes"></textarea>
+          <div class="full">
+            <button class="btn-primary" id="submit-update-btn" type="submit">Save to Supabase + Notify Telegram</button>
+            <div class="live-status" id="form-status">Ready.</div>
+          </div>
+        </form>
+      </div>
+      <div class="card mb-0">
+        <div class="section-title">Recent Activity Feed</div>
+        <div id="updates-feed" class="live-feed">
+          <div class="live-feed-item"><div class="live-feed-item__meta">Loading recent updates...</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DSU PANEL ========== -->
+  <div id="panel-dsu" class="panel">
+
+    <!-- DSU Header Bar -->
+    <div class="dsu-header mb-20">
+      <div class="dsu-topline"></div>
+      <div class="dsu-inner">
+        <div>
+          <div class="dsu-eyebrow">📝 DEVCON Ops — Monday Morning DSU</div>
+          <div class="dsu-date">Monday, April 13, 2026</div>
+          <div class="dsu-sub">Sui Build Beyond DEVCON PH · Q2 · 78 days remaining</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 1: KPI SUMMARY ── -->
+    <div class="section-title">📊 KPI Summary</div>
+
+    <!-- Numbers Tile Summary — single source of truth -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
+      <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.3);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Code Camps</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Completed</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Form Submissions</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Total project completions</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Trained Mentors</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Nationwide deployed</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.35);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Confirmed Deployments</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">51 students + 35 mentors</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.5);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
+        <div style="font-size:10px;font-weight:700;color:var(--green);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Completion Rate</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">86 / 135 (students + mentors)</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.25);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Computer Labs</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Activated to date</div>
+      </div>
+    </div>
+
+    <!-- Program Progress: Code Camps + Dev Events side by side -->
+    <div class="prog-grid mb-20">
+      <div class="prog-card prog-card--blue">
+        <div class="prog-card__accent prog-card__accent--blue"></div>
+        <div class="prog-card__label">🏕 Sui Code Camps</div>
+        <div class="prog-card__num"><span class="prog-big">1</span><span class="prog-denom">/ 5</span><span class="prog-unit">done</span></div>
+        <div class="progress-bar prog-card__bar"><div class="progress-fill" style="width:20%"></div></div>
+        <div class="prog-card__list">
+          <div class="prog-item"><span class="dot dot--green"></span><span>Manila – Letran <em class="tag-done">✓ Done</em></span></div>
+          <div class="prog-item"><span class="dot dot--blue"></span><span>Bukidnon – BSU <em class="tag-blue">May 6</em></span></div>
+          <div class="prog-item"><span class="dot dot--teal"></span><span>Iloilo – CPU Jaro <em class="tag-blue">May 16</em></span></div>
+          <div class="prog-item"><span class="dot dot--yellow"></span><span>Tacloban – LNU <em class="tag-warn">TBD</em></span></div>
+          <div class="prog-item"><span class="dot dot--teal"></span><span>Pampanga – CCA <em class="tag-teal">Jun 24</em></span></div>
+        </div>
+      </div>
+      <div class="prog-card prog-card--yellow">
+        <div class="prog-card__accent prog-card__accent--yellow"></div>
+        <div class="prog-card__label">⚡ Sui Developer Events / Secondary Code Camp Slots</div>
+        <div class="prog-card__num"><span class="prog-big prog-big--yellow">2</span><span class="prog-denom">/ 5</span><span class="prog-unit">done</span></div>
+        <div class="progress-bar prog-card__bar"><div class="progress-fill" style="width:40%;background:linear-gradient(90deg,var(--yellow),#ffcc00)"></div></div>
+        <div class="prog-card__list">
+          <div class="prog-item"><span class="dot dot--green"></span><span>Bayleaf Intramuros National Kickoff <em class="tag-done">✓ Done</em></span></div>
+          <div class="prog-item"><span class="dot dot--green"></span><span>SHEisDEVCON Manila <em class="tag-done">✓ Done</em></span></div>
+          <div class="prog-item"><span class="dot dot--yellow"></span><span>SHEisDEVCON Iloilo <em class="tag-warn">Apr 18</em></span></div>
+          <div class="prog-item"><span class="dot dot--blue"></span><span>SHEisDEVCON Event 4 <em class="tag-blue">May</em></span></div>
+          <div class="prog-item"><span class="dot dot--teal"></span><span>SHEisDEVCON Event 5 <em class="tag-teal">Jun</em></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: CAMP SCHEDULE & COUNTDOWN ── -->
+    <div class="section-title">📅 Camp Schedule &amp; Countdown</div>
+    <div class="camp-grid mb-20">
+
+      <div class="camp-card camp-card--blue">
+        <div class="camp-card__head">
+          <div><div class="camp-card__name">Bukidnon</div><div class="camp-card__venue">BSU · Lead: Zhi</div></div>
+          <span class="badge badge-pending">~3 Wks</span>
+        </div>
+        <div class="camp-card__date">May 6, 2026 <span class="badge badge-done" style="font-size:8px;margin-left:4px;">Sui Code Camp</span></div>
+        <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="camp-card__cd">23 days to go</div>
+        <div class="camp-card__todos">
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> Ocular at BSU + lab install planning</span></div>
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> Finalize student outreach for Sui workshop</span></div>
+        </div>
+      </div>
+
+      <div class="camp-card camp-card--teal">
+        <div class="camp-card__head">
+          <div><div class="camp-card__name">Iloilo</div><div class="camp-card__venue">CPU Jaro · Ted Aspera & Jose Arron</div></div>
+          <span class="badge badge-warn">~4 Wks</span>
+        </div>
+        <div class="camp-card__date">May 16, 2026 · Central Philippine University <span style="color:var(--text-dim);font-size:10px;">(Code Camp)</span></div>
+        <div class="camp-card__date-note">+ Apr 18 Sui Developer Event (5 days away)</div>
+        <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--sui-teal),#00ffcc)"></div></div>
+        <div class="camp-card__cd">33 days to go (code camp)</div>
+        <div class="camp-card__todos">
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Ted:</b> CPU Jaro ocular + install planning</span></div>
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Marica:</b> WVSU lab ocular (T-30 from Apr 18)</span></div>
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Dom:</b> Confirm Iloilo lead for Apr 18 Summit</span></div>
+          <div class="todo-item"><span class="todo-arrow">→</span><span><b>Jedd:</b> Send Sui/ABA/BOI branding assets to Ted</span></div>
+        </div>
+      </div>
+
+      <div class="camp-card camp-card--yellow">
+        <div class="camp-card__head">
+          <div><div class="camp-card__name">Tacloban</div><div class="camp-card__venue">LNU · Lead: Rolf</div></div>
+          <span class="badge badge-warn">~6–8 Wks</span>
+        </div>
+        <div class="camp-card__date" style="color:var(--yellow);">TBC (May/Jun) — Rescheduling</div>
+        <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--yellow),#ffcc00)"></div></div>
+        <div class="camp-card__cd">~45–60 days est. · Must lock before May 1</div>
+        <div class="camp-card__todos">
+          <div class="todo-item todo-item--urgent"><span class="todo-arrow">→</span><span><b>Rolf:</b> Lock new event date with partners this week</span></div>
+          <div class="todo-item todo-item--urgent"><span class="todo-arrow">→</span><span><b>Rolf:</b> Complete formal ocular at LNU</span></div>
+        </div>
+      </div>
+
+      <div class="camp-card camp-card--purple">
+        <div class="camp-card__head">
+          <div><div class="camp-card__name" style="color:#C4B5FD;">Laguna</div><div class="camp-card__venue">TBC · Lead: John Danmel</div></div>
+          <span class="badge badge-tbc">TBC</span>
+        </div>
+        <div class="camp-card__date" style="color:#A78BFA;">Date TBC — Awaiting June confirmation</div>
+        <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:#A78BFA"></div></div>
+        <div class="camp-card__cd" style="color:#A78BFA;">No timeline started</div>
+        <div class="camp-card__todos">
+          <div class="todo-item"><span class="todo-arrow" style="color:#A78BFA;">→</span><span><b>John Danmel:</b> Scout potential venue</span></div>
+          <div class="todo-item"><span class="todo-arrow" style="color:#A78BFA;">→</span><span><b>John Danmel:</b> Confirm June go/no-go for Laguna slot</span></div>
+        </div>
+      </div>
+
+      <div class="camp-card camp-card--teal">
+        <div class="camp-card__head">
+          <div><div class="camp-card__name">Pampanga</div><div class="camp-card__venue">CCA, Arayat Blvd, Angeles · Lead: Joash Requiez</div></div>
+          <span class="badge badge-pending">~10 Wks</span>
+        </div>
+        <div class="camp-card__date">Jun 24, 2026 · City College of Angeles</div>
+        <div class="camp-card__date-note">📌 Pencil-booked — Chapter request for Sui Move Code Camp slot</div>
+        <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--sui-teal),#00ffcc)"></div></div>
+        <div class="camp-card__cd">72 days to go · ~10 weeks</div>
+        <div class="camp-card__todos">
+          <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-teal);">→</span><span><b>Joash:</b> Confirm slot with Sui Foundation</span></div>
+          <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-teal);">→</span><span><b>Joash:</b> Formal ocular visit to CCA by May 25 (T-30)</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── SECTION 3: HIGH RISKS ── -->
+    <div class="section-title">⚠️ High Risks &amp; Blockers</div>
+    <div class="risk-list mb-20">
+      <div class="risk-alert risk-alert--red">
+        <span class="risk-alert__icon">🔴</span>
+        <div>
+          <div class="risk-alert__title">Tacloban Rescheduling</div>
+          <div class="risk-alert__body">Date still TBC. Rolf to confirm by end of week. Must lock before May 1 to stay within Q2 window. Every week of delay compresses the T-minus timeline.</div>
+          <div class="risk-alert__meta">OWNER: Rolf · DEADLINE: End of this week</div>
+        </div>
+      </div>
+      <div class="risk-alert risk-alert--purple">
+        <span class="risk-alert__icon">🟣</span>
+        <div>
+          <div class="risk-alert__title" style="color:#A78BFA;">Laguna — No Confirmed Slot</div>
+          <div class="risk-alert__body">Lead assigned: John Danmel. Awaiting June go/no-go from Dom. Risk of cancellation if confirmation doesn't come through.</div>
+          <div class="risk-alert__meta" style="color:#A78BFA;">OWNER: Dom / John Danmel · ACTION: Confirm slot or cancel</div>
+        </div>
+      </div>
+      <div class="risk-alert risk-alert--yellow">
+        <span class="risk-alert__icon">🟡</span>
+        <div>
+          <div class="risk-alert__title" style="color:var(--yellow);">Ocular Readiness — Bukidnon &amp; Iloilo</div>
+          <div class="risk-alert__body">Both chapters are in the T-30 window. Ocular reports due immediately. Delay in ocular = delay in installation = risk to event day.</div>
+          <div class="risk-alert__meta" style="color:var(--yellow);">OWNER: Zhi (BSU) · Ted / Marica (CPU + WVSU) · Schedule this week</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: TO-DOS PER CAMP ── -->
+    <div class="section-title">✅ To-Do List Per Camp</div>
+    <div class="todo-grid mb-20">
+      <div class="card">
+        <div class="todo-camp-label" style="color:var(--sui-blue);">📍 Bukidnon (BSU)</div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> <span style="color:var(--text-dim);">Ocular at BSU + lab installation planning</span></span></div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> <span style="color:var(--text-dim);">Finalize local student outreach for Sui workshop</span></span></div>
+      </div>
+      <div class="card">
+        <div class="todo-camp-label" style="color:var(--sui-teal);">📍 Iloilo (CPU Jaro &amp; WVSU)</div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Ted:</b> <span style="color:var(--text-dim);">CPU Jaro ocular and install planning</span></span></div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Marica:</b> <span style="color:var(--text-dim);">WVSU lab ocular visit (T-30 from Apr 18)</span></span></div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Dom:</b> <span style="color:var(--text-dim);">Confirm Iloilo lead for Apr 18 SHEisDEVCON Summit</span></span></div>
+        <div class="todo-item"><span class="todo-arrow">→</span><span><b>Jedd:</b> <span style="color:var(--text-dim);">Send Sui/ABA/BOI branding assets to Ted</span></span></div>
+      </div>
+      <div class="card">
+        <div class="todo-camp-label" style="color:var(--yellow);">📍 Tacloban (LNU)</div>
+        <div class="todo-item todo-item--urgent"><span class="todo-arrow todo-arrow--red">→</span><span><b>Rolf:</b> <span style="color:var(--text-dim);">Lock new event date with partners this week</span></span></div>
+        <div class="todo-item todo-item--urgent"><span class="todo-arrow todo-arrow--red">→</span><span><b>Rolf:</b> <span style="color:var(--text-dim);">Complete formal ocular at LNU</span></span></div>
+      </div>
+      <div class="card">
+        <div class="todo-camp-label" style="color:#A78BFA;">📍 Laguna (TBC)</div>
+        <div class="todo-item"><span class="todo-arrow" style="color:#A78BFA;">→</span><span><b>John Danmel:</b> <span style="color:var(--text-dim);">Scout potential venue in Laguna</span></span></div>
+        <div class="todo-item"><span class="todo-arrow" style="color:#A78BFA;">→</span><span><b>John Danmel:</b> <span style="color:var(--text-dim);">Confirm June go/no-go for Laguna slot</span></span></div>
+      </div>
+      <div class="card">
+        <div class="todo-camp-label" style="color:var(--text-dim);">📍 General / Backlog</div>
+        <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-blue);">→</span><span><b>Dom:</b> <span style="color:var(--text-dim);">Draft Q2 narrative report outline for Sui Foundation</span></span></div>
+      </div>
+    </div>
+
+    <!-- Quick chapter nav -->
+    <div class="ch-quicknav">
+      <div class="ch-quicknav__label">Jump to Chapter</div>
+      <div class="ch-quicknav__btns">
+        <button onclick="showChapter('manila')" class="ch-qbtn ch-qbtn--teal">Ch1 Manila ✓</button>
+        <button onclick="showChapter('tacloban')" class="ch-qbtn ch-qbtn--yellow">Ch2 Tacloban ⚠</button>
+        <button onclick="showChapter('iloilo')" class="ch-qbtn ch-qbtn--blue">Ch3 Iloilo 🔄</button>
+        <button onclick="showChapter('bukidnon')" class="ch-qbtn ch-qbtn--teal">Ch4 Bukidnon ✓</button>
+        <button onclick="showChapter('pampanga')" class="ch-qbtn ch-qbtn--blue">Ch5 Pampanga</button>
+        <button onclick="showChapter('laguna')" class="ch-qbtn ch-qbtn--purple">Ch6 Laguna TBC</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== KPI PANEL ========== -->
+  <div id="panel-kpi" class="panel">
+
+    <!-- Numbers Tile Summary -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;">
+      <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.3);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Code Camps</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Completed</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Form Submissions</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Total project completions</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Trained Mentors</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Nationwide deployed</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.35);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Confirmed Deployments</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">51 students + 35 mentors</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.5);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
+        <div style="font-size:10px;font-weight:700;color:var(--green);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Completion Rate</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">86 / 135 (students + mentors)</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.25);border-radius:10px;padding:14px 12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
+        <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Computer Labs</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Activated to date</div>
+      </div>
+    </div>
+
+    <div class="section-title">National Pax KPI — MOU Progress</div>
+    <div class="card mb-20">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:44px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">0<span style="color:var(--text-dim);font-size:24px"> / 600</span></div>
+          <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;">Total Participants Logged · MOU Minimum: 500</div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green)">1</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Done</div></div>
+          <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'Space Mono',monospace;color:var(--yellow)">3</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Q2 Active</div></div>
+          <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue)">1</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Q3 Pending</div></div>
+          <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'Space Mono',monospace;color:#A78BFA">1</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">TBC</div></div>
+        </div>
+      </div>
+      <div style="margin-bottom:7px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace;"><span>MOU Minimum (500 pax)</span><span>0 / 500</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace;"><span>Projected Target (600 pax)</span><span>0 / 600</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--sui-teal),#00ffcc)"></div></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 13px;background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.2);border-radius:6px;font-size:11px;color:var(--text-dim);">⚠ <strong style="color:var(--red)">ACTION REQUIRED:</strong> Log Manila actual pax count. All chapters report within T+3 days of event.</div>
+    </div>
+
+    <div class="card mb-20">
+      <div class="section-title">Per-Event Pax Breakdown</div>
+      <div class="pax-row">
+        <div><div class="pax-label">Manila – Letran</div><div class="pax-sub">28 Mar 2026 · ✓ Executed</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--yellow),#ffcc00)"></div></div><div style="font-size:10px;color:var(--yellow);margin-top:3px;font-family:'Space Mono',monospace;">⚠ Pax count TBC — update post-event</div></div>
+        <div class="pax-count">TBC<br><span style="font-size:9px;color:var(--text-dim)">/ 150</span></div>
+      </div>
+      <div class="pax-row">
+        <div><div class="pax-label">Tacloban – LNU</div><div class="pax-sub">New sched TBD · EV</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div><div style="font-size:10px;color:var(--yellow);margin-top:3px;font-family:'Space Mono',monospace;">Waiting for new LNU schedule</div></div>
+        <div class="pax-count">–<br><span style="font-size:9px;color:var(--text-dim)">/ 100</span></div>
+      </div>
+      <div class="pax-row">
+        <div><div class="pax-label">Iloilo – WVSU/CPU</div><div class="pax-sub">18 Apr (dev event) + May 16</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;font-family:'Space Mono',monospace;">Apr 18 = Sui Dev Event (not code camp)</div></div>
+        <div class="pax-count">–<br><span style="font-size:9px;color:var(--text-dim)">/ 120</span></div>
+      </div>
+      <div class="pax-row">
+        <div><div class="pax-label">Bukidnon – BSU</div><div class="pax-sub">6 May 2026 · Mindanao</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div><div style="font-size:10px;color:var(--green);margin-top:3px;font-family:'Space Mono',monospace;">✓ Financial issue resolved (Cash Advance)</div></div>
+        <div class="pax-count">–<br><span style="font-size:9px;color:var(--text-dim)">/ 100</span></div>
+      </div>
+      <div class="pax-row">
+        <div><div class="pax-label">Pampanga – CCA</div><div class="pax-sub">24 Jun 2026</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;font-family:'Space Mono',monospace;">Activating — mentor recruitment in progress</div></div>
+        <div class="pax-count">–<br><span style="font-size:9px;color:var(--text-dim)">/ 130</span></div>
+      </div>
+      <div class="pax-row">
+        <div><div class="pax-label">Laguna</div><div class="pax-sub">TBC — slot unconfirmed</div></div>
+        <div><div class="progress-bar"><div class="progress-fill" style="width:0%;background:#A78BFA"></div></div><div style="font-size:10px;color:#A78BFA;margin-top:3px;font-family:'Space Mono',monospace;">Waiting June confirmation or slot cancelled</div></div>
+        <div class="pax-count">–<br><span style="font-size:9px;color:var(--text-dim)">/ TBC</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Master Schedule</div>
+    <div class="tbl-wrap mb-20">
+      <table>
+        <thead><tr><th>#</th><th>Date</th><th>Chapter</th><th>Lead</th><th>Venue</th><th>Pax Target</th><th>Countdown</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="td-mono">1</td><td class="td-mono">28 Mar 2026</td><td><strong>Manila – NCR</strong></td><td class="td-dim">Lady Diane Casilang</td><td class="td-dim">Letran, Intramuros</td><td class="td-mono">150</td><td class="td-dim"><span style="color:var(--green);font-family:'Space Mono',monospace;font-size:10px;">+16 days ago</span></td><td><span class="badge badge-done">✓ Completed</span></td></tr>
+          <tr><td class="td-mono">2</td><td class="td-mono" style="color:var(--yellow)">TBD</td><td><strong>Tacloban – EV</strong></td><td class="td-dim">Rolf Genree Garces</td><td class="td-dim">Leyte Normal University</td><td class="td-mono">100</td><td class="td-dim"><span style="color:var(--yellow);font-family:'Space Mono',monospace;font-size:10px;">New sched TBD</span></td><td><span class="badge badge-warn">⚠ Rescheduling</span></td></tr>
+          <tr><td class="td-mono">3A</td><td class="td-mono" style="color:var(--yellow)">18 Apr 2026</td><td><strong>Iloilo Sui Dev Event</strong></td><td class="td-dim">Ted Aspera + Marica</td><td class="td-dim">WVSU BINHI TBI (TBC)</td><td class="td-mono">—</td><td class="td-dim"><span id="cd-iloilo-a" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--yellow);">5 days</span></td><td><span class="badge badge-warn">⚠ Not Code Camp</span></td></tr>
+          <tr><td class="td-mono">3B</td><td class="td-mono">16 May 2026</td><td><strong>Iloilo Code Camp</strong></td><td class="td-dim">Ted Aspera & Jose Arron</td><td class="td-dim">Central Philippine University</td><td class="td-mono">120</td><td class="td-dim"><span id="cd-iloilo-b" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--sui-blue);">33 days</span></td><td><span class="badge badge-pending">⚠ In Progress</span></td></tr>
+          <tr><td class="td-mono">4</td><td class="td-mono">6 May 2026</td><td><strong>Bukidnon</strong></td><td class="td-dim">Zhi / Zhor El VP</td><td class="td-dim">Bukidnon State University</td><td class="td-mono">100</td><td class="td-dim"><span id="cd-bukidnon" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--sui-blue);">23 days</span></td><td><span class="badge badge-done">✓ Finance Resolved</span> <span class="badge badge-done" style="font-size:8px;">Code Camp</span></td></tr>
+          <tr><td class="td-mono">5</td><td class="td-mono">24 Jun 2026</td><td><strong>Pampanga</strong></td><td class="td-dim">Joash Requiez</td><td class="td-dim">City College of Angeles, Arayat Blvd, Angeles</td><td class="td-mono">TBC</td><td class="td-dim"><span id="cd-pampanga" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--sui-teal);">72 days</span></td><td><span class="badge badge-warn">📌 Pencil-booked</span></td></tr>
+          <tr><td class="td-mono">6</td><td class="td-mono" style="color:#A78BFA">TBC</td><td><strong>Laguna</strong></td><td class="td-dim" style="color:#A78BFA;">John Danmel</td><td class="td-dim">TBC</td><td class="td-mono">TBC</td><td class="td-dim"><span style="font-family:'Space Mono',monospace;font-size:10px;color:#A78BFA;">Awaiting June confirm</span></td><td><span class="badge badge-tbc">⚠ TBC / At Risk</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== PARTNERSHIP KPIs ========== -->
+  <div id="panel-milestones" class="panel">
+    <div class="info-box"><strong>Partnership KPI Recap</strong> — Dec '25 (Q4) → Nov '26 (Q4). Currently in <strong style="color:var(--yellow)">April '26 (Q2)</strong>. ✅ = Completed · 🔄 = Active · — = Not yet started</div>
+    <div class="milestone-grid mb-20">
+      <table class="milestone-table">
+        <thead>
+          <tr>
+            <th class="row-header">Milestone</th>
+            <th>Dec '25<br><span style="font-size:8px;opacity:.6">(Q4)</span></th>
+            <th>Jan '26<br><span style="font-size:8px;opacity:.6">(Q1)</span></th>
+            <th>Feb '26<br><span style="font-size:8px;opacity:.6">(Q1)</span></th>
+            <th>Mar '26<br><span style="font-size:8px;opacity:.6">(Q1)</span></th>
+            <th class="q2-col">Apr '26<br><span style="font-size:8px;opacity:.8">(Q2) ◄ NOW</span></th>
+            <th>May '26<br><span style="font-size:8px;opacity:.6">(Q2)</span></th>
+            <th>Jun '26<br><span style="font-size:8px;opacity:.6">(Q2)</span></th>
+            <th>Jul '26<br><span style="font-size:8px;opacity:.6">(Q3)</span></th>
+            <th>Aug '26<br><span style="font-size:8px;opacity:.6">(Q3)</span></th>
+            <th>Sep '26<br><span style="font-size:8px;opacity:.6">(Q3)</span></th>
+            <th>Oct '26<br><span style="font-size:8px;opacity:.6">(Q4)</span></th>
+            <th>Nov '26<br><span style="font-size:8px;opacity:.6">(Q4)</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-header">Partnership Media &amp; Community Launch</td><td></td><td></td><td colspan="2" class="cell-done">✅ Kickoff Announcement (20–30 Pax)<br><span style="font-size:10px;color:var(--text-dim)">Mar 26 · Bayleaf Intramuros · National Kickoff</span></td><td class="q2-col"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">DEVCON Kids Micro:bit Donation &amp; Hour of AI</td><td class="cell-done">✅ 25 pcs Donations + Hour of AI support</td><td></td><td></td><td></td><td class="q2-col"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">Code Camp Mentor Training</td><td></td><td></td><td class="cell-done">✅ Phase 1<br>(Online)</td><td class="cell-done">✅ Phase 2<br>(Online)</td><td class="q2-col cell-active">🔄 Phase 3<br>(Online)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">Campus DEVCON &amp; SHEisDEVCON Series</td><td></td><td></td><td></td><td class="cell-done">✅ SHEisDEVCON<br>Chapter Event 1</td><td class="q2-col cell-active">🔄 SHEisDEVCON<br>Events 2 &amp; 3</td><td class="cell-upcoming">Event 4</td><td class="cell-upcoming">Event 5</td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">Code Camp Pilot Execution (Q2)</td><td></td><td></td><td></td><td class="cell-done">✅ Manila Pilot</td><td class="q2-col cell-active">🔄 Event 2<br>(Iloilo Sui Dev)</td><td class="cell-upcoming">Events 3–4<br>(Iloilo CC + BSU)</td><td class="cell-upcoming">Event 5<br>(Pampanga)</td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">Batch 2 Code Camp Rollout (Q3)</td><td></td><td></td><td></td><td></td><td class="q2-col"></td><td></td><td class="cell-upcoming">Event 4</td><td class="cell-upcoming">Event 5</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="row-header">DEVCON Studios Content Coverage</td><td></td><td class="cell-done">✅ Feature 1</td><td></td><td class="cell-done">✅ Feature 2</td><td class="q2-col cell-active">🔄 Feature 3</td><td></td><td class="cell-upcoming">Feature 4</td><td class="cell-upcoming">Feature 5</td><td></td><td class="cell-upcoming">Feature 6</td><td></td><td></td></tr>
+          <tr><td class="row-header">Quarterly Report</td><td></td><td></td><td></td><td class="cell-done">✅ Q1 Report</td><td class="q2-col"></td><td></td><td class="cell-upcoming">Q2 Report</td><td></td><td></td><td class="cell-upcoming">Q3 Report</td><td></td><td class="cell-upcoming">Q4 Final</td></tr>
+          <tr><td class="row-header">Final Report &amp; Assessment</td><td></td><td></td><td></td><td></td><td class="q2-col"></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="cell-upcoming">Final Report</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Q1 Completed ✅</div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--text-dim);">
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> Partnership Media Kickoff — Mar 26 · Bayleaf Intramuros (20–30 pax · National Kickoff)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> DEVCON Kids Micro:bit — 25 pcs donations + Hour of AI support</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> Code Camp Mentor Training Phase 1 (Feb) + Phase 2 (Mar)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> SHEisDEVCON Chapter Event 1 — Mar</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> Manila Pilot Code Camp — Mar 28, Letran</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> DEVCON Studios Feature 1 (Jan) + Feature 2 (Mar)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--green)">✅</span> Q1 Report submitted</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">Q2 Active 🔄 — Now</div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--text-dim);">
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> Code Camp Mentor Training Phase 3 — Online (Apr)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> SHEisDEVCON Events 2 &amp; 3 — Apr (Iloilo + TBD)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> Iloilo Sui-Supported Developer Event — Apr 18 (not code camp)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> Tacloban Code Camp — new schedule TBD (LNU rescheduling)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> Bukidnon Code Camp — May 6 (finance resolved ✓)</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--yellow)">🔄</span> DEVCON Studios Feature 3 — Active</div>
+          <div style="display:flex;gap:8px;"><span style="color:var(--red)">—</span> Q2 Narrative Report → Sui Foundation · <strong style="color:var(--red)">Due Jun 30</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== ALL CHAPTERS PANEL ========== -->
+  <div id="panel-chapters" class="panel">
+    <div class="info-box"><strong>Click any chapter tab</strong> (teal buttons in the nav) for the full individual chapter page with unique URL. Below is the summary overview. Mike and Lady are actively updating code camp content, installation guide, and procedures based on Letran pilot learnings.</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Chapter</th><th>Lead</th><th>Date</th><th>Venue</th><th>Target</th><th>Countdown</th><th>Merch</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="td-mono">1</td><td><strong>Manila – NCR</strong></td><td class="td-dim">Lady Diane Casilang</td><td class="td-mono">28 Mar 2026</td><td class="td-dim">Letran Intramuros</td><td class="td-mono">150</td><td class="td-dim" style="color:var(--green);font-family:'Space Mono',monospace;font-size:10px;">+16 days ago</td><td><span class="badge badge-done">✓ Distributed</span></td><td><span class="badge badge-done">✓ Completed</span></td></tr>
+          <tr><td class="td-mono">2</td><td><strong>Tacloban – EV</strong></td><td class="td-dim">Rolf Genree Garces</td><td class="td-mono" style="color:var(--yellow)">TBD</td><td class="td-dim">Leyte Normal University</td><td class="td-mono">100</td><td class="td-dim" style="color:var(--yellow);font-family:'Space Mono',monospace;font-size:10px;">Awaiting new sched</td><td><span class="badge badge-warn">⚠ Check</span></td><td><span class="badge badge-warn">⚠ Rescheduling</span></td></tr>
+          <tr><td class="td-mono">3A</td><td><strong>Iloilo – Sui Dev Event</strong></td><td class="td-dim">Ted + Marica</td><td class="td-mono" style="color:var(--yellow)">18 Apr 2026</td><td class="td-dim">WVSU BINHI TBI</td><td class="td-mono">—</td><td class="td-dim" style="color:var(--yellow);font-family:'Space Mono',monospace;font-size:10px;">5 days</td><td><span class="badge badge-done">✓ Sent</span></td><td><span class="badge badge-warn">⚠ Not Code Camp</span></td></tr>
+          <tr><td class="td-mono">3B</td><td><strong>Iloilo – Code Camp</strong></td><td class="td-dim">Ted Hyacinth Aspera</td><td class="td-mono">16 May 2026</td><td class="td-dim">Central Philippine University</td><td class="td-mono">120</td><td class="td-dim" style="color:var(--sui-blue);font-family:'Space Mono',monospace;font-size:10px;">33 days</td><td><span class="badge badge-done">✓ Merch Sent</span></td><td><span class="badge badge-pending">⚠ In Progress</span></td></tr>
+          <tr><td class="td-mono">4</td><td><strong>Bukidnon</strong></td><td class="td-dim">Zhi / Zhor El VP</td><td class="td-mono">6 May 2026</td><td class="td-dim">Bukidnon State University</td><td class="td-mono">100</td><td class="td-dim" style="color:var(--sui-blue);font-family:'Space Mono',monospace;font-size:10px;">23 days</td><td><span class="badge badge-risk">⚠ Not Yet Sent</span></td><td><span class="badge badge-done">✓ Finance Resolved</span></td></tr>
+          <tr><td class="td-mono">5</td><td><strong>Pampanga</strong></td><td class="td-dim">Joash Requiez</td><td class="td-mono">24 Jun 2026</td><td class="td-dim">City College of Angeles, Arayat Blvd, Angeles</td><td class="td-mono">TBC</td><td class="td-dim" style="color:var(--sui-teal);font-family:'Space Mono',monospace;font-size:10px;">72 days · 10 wks</td><td><span class="badge badge-warn">📌 Pencil-booked</span></td><td><span class="badge badge-warn">⚠ Activating</span></td></tr>
+          <tr><td class="td-mono">6</td><td><strong>Laguna</strong></td><td class="td-dim" style="color:#A78BFA;">John Danmel</td><td class="td-mono" style="color:#A78BFA">TBC</td><td class="td-dim">TBC</td><td class="td-mono">TBC</td><td class="td-dim" style="color:#A78BFA;font-family:'Space Mono',monospace;font-size:10px;">Awaiting June confirm</td><td><span class="badge badge-tbc">⚠ TBC</span></td><td><span class="badge badge-tbc">TBC / At Risk Cancel</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== RISKS ========== -->
+  <div id="panel-risks" class="panel">
+    <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+      <div class="card" style="flex:1;min-width:110px;text-align:center;border-color:rgba(255,77,106,0.3);"><div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--red)">2</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;">🔴 High</div></div>
+      <div class="card" style="flex:1;min-width:110px;text-align:center;border-color:rgba(255,181,71,0.3);"><div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--yellow)">5</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;">🟡 Medium</div></div>
+      <div class="card" style="flex:1;min-width:110px;text-align:center;border-color:rgba(0,212,170,0.3);"><div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green)">2</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;">🟢 Low</div></div>
+      <div class="card" style="flex:1;min-width:110px;text-align:center;"><div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--text-dim)">9</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;">Total Open</div></div>
+    </div>
+    <div class="section-title">Active Risk Register</div>
+    <div class="risk-row"><div class="risk-num">R1</div><div><div class="risk-title">Tacloban rescheduling — new LNU date not yet confirmed</div><div class="risk-desc">Original Apr 11 date did not push through. LNU new schedule pending. Every week of delay compresses the T-minus timeline.</div><div style="margin-top:6px;"><span class="badge badge-risk">Tacloban</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Rolf</div><div><span class="sev sev-high">🔴 HIGH</span></div></div>
+    <div class="risk-row"><div class="risk-num">R2</div><div><div class="risk-title">Laguna — no confirmed slot, risk of cancellation</div><div class="risk-desc">Lead assigned: John Danmel. Waiting for June go/no-go from Dom. If not confirmed, slot is cancelled. No venue or timeline started yet.</div><div style="margin-top:6px;"><span class="badge badge-tbc">Laguna</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Dom / John Danmel</div><div><span class="sev sev-high">🔴 HIGH</span></div></div>
+    <div class="risk-row"><div class="risk-num">R3</div><div><div class="risk-title">Iloilo WVSU venue (Apr 18 Sui Dev Event) not yet formally confirmed</div><div class="risk-desc">Contact WVSU to confirm. Note: Apr 18 is a Sui-supported developer event, NOT the code camp.</div><div style="margin-top:6px;"><span class="badge badge-warn">Iloilo</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Ted & Jose Arron</div><div><span class="sev sev-med">🟡 MED</span></div></div>
+    <div class="risk-row"><div class="risk-num">R4</div><div><div class="risk-title">Iloilo CPU Code Camp (May 16) — pencil-booked only</div><div class="risk-desc">Formally confirm CPU venue with written confirmation ASAP. T-30 ocular due Apr 16.</div><div style="margin-top:6px;"><span class="badge badge-warn">Iloilo</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Ted & Jose Arron</div><div><span class="sev sev-med">🟡 MED</span></div></div>
+    <div class="risk-row"><div class="risk-num">R5</div><div><div class="risk-title">Pampanga — pencil-booked, slot not yet formally confirmed</div><div class="risk-desc">Chapter request for Sui Move Code Camp at CCA submitted. Joash Requiez assigned as lead. Formal Sui Foundation slot confirmation pending. T-30 ocular due May 25.</div><div style="margin-top:6px;"><span class="badge badge-warn">Pampanga</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Joash</div><div><span class="sev sev-med">🟡 MED</span></div></div>
+    <div class="risk-row"><div class="risk-num">R6</div><div><div class="risk-title">0 pax logged vs. 500 MOU minimum</div><div class="risk-desc">Log Manila actuals immediately. All chapters must report pax within T+3 days of event.</div><div style="margin-top:6px;"><span class="badge badge-warn">All Chapters</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Dom / Jedd</div><div><span class="sev sev-med">🟡 MED</span></div></div>
+    <div class="risk-row"><div class="risk-num">R7</div><div><div class="risk-title">DeepSurge listing not yet live</div><div class="risk-desc">Follow up with @zero_x_j (Jianyi). Needed as secondary proof of student project submission for Q2 report.</div><div style="margin-top:6px;"><span class="badge badge-warn">All</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Jianyi</div><div><span class="sev sev-med">🟡 MED</span></div></div>
+    <div class="risk-row"><div class="risk-num">R8</div><div><div class="risk-title">Code camp content + installation guide being updated post-Letran pilot</div><div class="risk-desc">Mike and Lady updating content based on pilot learnings. All chapters must use updated guide — do NOT use pre-Manila version.</div><div style="margin-top:6px;"><span class="badge badge-warn">All Chapters</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Mike + Lady</div><div><span class="sev sev-low">🟢 LOW</span></div></div>
+    <div class="risk-row"><div class="risk-num">R9</div><div><div class="risk-title">Q2 narrative report — 4+ camps still to run before Jun 30</div><div class="risk-desc">Log pax + outcomes per event immediately after each camp. Dom drafts narrative in June. Deadline: June 30, 2026.</div><div style="margin-top:6px;"><span class="badge badge-pending">HQ</span></div></div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;">Dom / Jedd</div><div><span class="sev sev-low">🟢 LOW</span></div></div>
+  </div>
+
+  <!-- ========== MERCH ========== -->
+  <div id="panel-merch" class="panel">
+    <div class="info-box"><strong>Master Custodian:</strong> Lady Diane Casilang · Manila HQ. All inventory updates require Lady's confirmation. Financial details in Internal HQ (Dom + Jedd only).</div>
+    <div class="note-box"><strong>📦 Update:</strong> Iloilo code camp merch already sent. Bukidnon merch <strong style="color:var(--red)">NOT YET SENT</strong> — needs to be packed and shipped before T-7 (Apr 29).</div>
+    <div class="grid-2 mb-20">
+      <div class="card">
+        <div class="section-title">Chapter Merch Status</div>
+        <div class="vkit-item"><span><strong>Manila – NCR</strong></span><span class="badge badge-done">✓ Distributed</span></div>
+        <div class="vkit-item"><span><strong>Tacloban – EV</strong></span><span class="badge badge-warn">⚠ Confirm post-reschedule</span></div>
+        <div class="vkit-item"><span><strong>Iloilo (Code Camp)</strong></span><span class="badge badge-done">✓ Merch Sent</span></div>
+        <div class="vkit-item"><span><strong>Bukidnon</strong></span><span class="badge badge-risk">⚠ Not Yet Sent</span></div>
+        <div class="vkit-item"><span><strong>Pampanga</strong></span><span class="badge badge-warn">⚠ Pending — not yet packed</span></div>
+        <div class="vkit-item"><span><strong>Laguna</strong></span><span class="badge badge-tbc">TBC — slot not confirmed</span></div>
+      </div>
+      <div class="card">
+        <div class="section-title">VIP Kits — 25 Total</div>
+        <div class="vkit-item"><span>Custom engraved pen "BUIDL | DEVCON x Sui"</span><span class="badge badge-done">✓ Confirmed</span></div>
+        <div class="vkit-item"><span>Baseus 3-in-1 retractable USB cable</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="vkit-item"><span>Tote bag (at Lady)</span><span class="badge badge-done">✓ At Lady</span></div>
+        <div class="vkit-item"><span>Wireless fan (pink)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="divider"></div>
+        <div style="font-size:11px;color:var(--text-dim);line-height:2.2;">5 kits → Letran core organizers<br>3 kits → Nicole Gomez · Harrison Kim · Raphael Bacolod<br>17 kits → Tech community leads + media guests</div>
+      </div>
+    </div>
+    <div class="section-title">JCR Order — Invoice #0729 (Mar 24, 2026) ✓ Received</div>
+    <div class="tbl-wrap mb-20">
+      <table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Distribution</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>T-Shirt Batch 1 (S-20 M-40 L-30 XL-10)</td><td class="td-mono">100</td><td class="td-dim">Volunteers + raffle</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>T-Shirt Batch 2 (S-20 M-40 L-30 XL-10)</td><td class="td-mono">100</td><td class="td-dim">Volunteers + raffle</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Black Mugs</td><td class="td-mono">30</td><td class="td-dim">Raffle / VIP</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Button Pins (1.75" + 2.25")</td><td class="td-mono">200</td><td class="td-dim">Raffle</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Mousepad</td><td class="td-mono">100</td><td class="td-dim">Raffle</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Tote Bag</td><td class="td-mono">50</td><td class="td-dim">VIP / Part 2 dinner</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Lanyards</td><td class="td-mono">100</td><td class="td-dim">Distribution</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+          <tr><td>Pull-up Banner</td><td class="td-mono">4</td><td class="td-dim">Events</td><td><span class="badge badge-done">✓ Received</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Lazada Orders</div>
+        <div class="vkit-item"><span>Wireless Fan Pink (20 pcs)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="vkit-item"><span>Wireless Mouse Rose Gold (20 pcs)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="vkit-item"><span>White charging wires kit (50 pcs)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="vkit-item"><span>VIP pen — engraved "BUIDL | DEVCON x Sui" (40 pcs)</span><span class="badge badge-done">✓ Confirmed</span></div>
+        <div class="vkit-item"><span>Baseus 3-in-1 retractable USB (10 pcs, VIP)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-dim);padding:9px;background:var(--bg3);border-radius:6px;">📝 Light pink polo (100 pcs) — CANCELLED. Replaced with SHEisDEVCON shirts.</div>
+      </div>
+      <div class="card">
+        <div class="section-title">Shopee — Umbrella Orders</div>
+        <div class="vkit-item"><span>Order A: Pink umbrella 8-rib auto (30 pcs)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="vkit-item"><span>Order B: Navy ×20 + Pink ×20 (40 pcs)</span><span class="badge badge-warn">⚠ Confirm rcvd</span></div>
+        <div class="divider"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:22px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue)">70</div><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Total Umbrellas</div></div><div style="text-align:right;"><div style="font-size:11px;color:var(--text-dim)">Delivery confirmation</div><div style="font-size:11px;color:var(--red)">⚠ Pending</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== ALL LINKS ========== -->
+  <div id="panel-links" class="panel">
+    <div class="section-title">Chapter Subpages — Unique URLs</div>
+    <div class="info-box">Each chapter has its own dedicated page accessible via the URL hash. Share these links with chapter leads and interns for focused tracking.</div>
+    <div class="links-grid mb-20">
+      <div class="link-card" onclick="showChapter('manila')">
+        <div class="link-icon link-icon-teal">1️⃣</div>
+        <div><div class="link-name">Manila – NCR</div><div class="link-desc">28 Mar 2026 · Completed</div><div class="link-ext">#chapter/manila</div></div>
+      </div>
+      <div class="link-card" onclick="showChapter('tacloban')">
+        <div class="link-icon link-icon-yellow">2️⃣</div>
+        <div><div class="link-name">Tacloban – EV</div><div class="link-desc">TBD · Rescheduling LNU</div><div class="link-ext">#chapter/tacloban</div></div>
+      </div>
+      <div class="link-card" onclick="showChapter('iloilo')">
+        <div class="link-icon link-icon-blue">3️⃣</div>
+        <div><div class="link-name">Iloilo – WV</div><div class="link-desc">Apr 18 Dev Event + May 16 Code Camp</div><div class="link-ext">#chapter/iloilo</div></div>
+      </div>
+      <div class="link-card" onclick="showChapter('bukidnon')">
+        <div class="link-icon link-icon-teal">4️⃣</div>
+        <div><div class="link-name">Bukidnon</div><div class="link-desc">6 May 2026 · Finance Resolved</div><div class="link-ext">#chapter/bukidnon</div></div>
+      </div>
+      <div class="link-card" onclick="showChapter('pampanga')">
+        <div class="link-icon link-icon-blue">5️⃣</div>
+        <div><div class="link-name">Pampanga</div><div class="link-desc">24 Jun 2026 · Activating</div><div class="link-ext">#chapter/pampanga</div></div>
+      </div>
+      <div class="link-card" onclick="showChapter('laguna')">
+        <div class="link-icon link-icon-purple">6️⃣</div>
+        <div><div class="link-name">Laguna</div><div class="link-desc">TBC · Awaiting June confirmation</div><div class="link-ext">#chapter/laguna</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Google Drive &amp; Operations Resources</div>
+    <div class="links-grid mb-20">
+      <a href="https://drive.google.com/drive/u/0/folders/1PgEi7H96KE2Cect9b6CRbmMgtkT-Ca4?role=writer" target="_blank" class="link-card">
+        <div class="link-icon link-icon-blue">📁</div>
+        <div><div class="link-name">Partner Logos</div><div class="link-desc">Sui · ABA · BOI</div><div class="link-ext">Google Drive</div></div>
+      </a>
+      <a href="https://drive.google.com/drive/u/0/folders/1x0CJkf_WmPqMcXEpKekBwKwkBoDMlAd3" target="_blank" class="link-card">
+        <div class="link-icon link-icon-blue">🎬</div>
+        <div><div class="link-name">Looping Event Videos</div><div class="link-desc">For use during events + breaks</div><div class="link-ext">Google Drive</div></div>
+      </a>
+      <a href="https://forms.gle/RBtZW4kJwGhiM3g76" target="_blank" class="link-card">
+        <div class="link-icon link-icon-teal">📝</div>
+        <div><div class="link-name">Exercise Completion Form</div><div class="link-desc">Student submission · Q2 proof</div><div class="link-ext">Google Forms</div></div>
+      </a>
+      <a href="https://docs.google.com/document/d/1FI-gO9vMMcdMJqU8p1YtoAyxyjFQRyMxFKcJH4eocr8" target="_blank" class="link-card">
+        <div class="link-icon link-icon-yellow">🔧</div>
+        <div><div class="link-name">Technical Installation Guide</div><div class="link-desc">Updated post-Letran pilot (Mike + Lady)</div><div class="link-ext">Google Docs</div></div>
+      </a>
+      <a href="https://docs.google.com/presentation/d/1cTLY77rA-0ljnHm2xKKxYnBPLldJP7bM" target="_blank" class="link-card">
+        <div class="link-icon link-icon-blue">📊</div>
+        <div><div class="link-name">SHEisDEVCON 2026 Guidelines</div><div class="link-desc">Event guidelines + materials</div><div class="link-ext">Google Slides</div></div>
+      </a>
+    </div>
+
+    <div class="section-title">Key Contacts &amp; Handles</div>
+    <div class="links-grid">
+      <div class="link-card"><div class="link-icon link-icon-blue">🌐</div><div><div class="link-name">Harrison Kim</div><div class="link-desc">Sui Partnership Coordinator</div><div class="link-ext">@web3tree</div></div></div>
+      <div class="link-card"><div class="link-icon link-icon-blue">💜</div><div><div class="link-name">Nicole Gomez</div><div class="link-desc">Sui PH Team / Coordinator</div><div class="link-ext">@nicgomez</div></div></div>
+      <div class="link-card"><div class="link-icon link-icon-blue">⚙️</div><div><div class="link-name">Jianyi</div><div class="link-desc">Sui DevRel · DeepSurge · Install Guide</div><div class="link-ext">@zero_x_j</div></div></div>
+      <div class="link-card"><div class="link-icon link-icon-teal">📧</div><div><div class="link-name">Ted Hyacinth Aspera</div><div class="link-desc">Iloilo Chapter Lead</div><div class="link-ext"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="097d687a796c7b68496d6c7f6a6667277961">[email&#160;protected]</a></div></div></div>
+      <div class="link-card"><div class="link-icon link-icon-teal">📧</div><div><div class="link-name">Zhi / Zhor El (VP)</div><div class="link-desc">Bukidnon Chapter Lead</div><div class="link-ext"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="32555f465350535f5d72565744515d5c1c425a">[email&#160;protected]</a></div></div></div>
+    </div>
+  </div>
+
+  <!-- ========== CONTACTS ========== -->
+  <div id="panel-contacts" class="panel">
+    <div class="section-title">Sui Foundation Team</div>
+    <div class="grid-3 mb-20">
+      <div class="contact-card"><div class="contact-avatar">🌐</div><div><div class="contact-name">Harrison Kim</div><div class="contact-role">Partnership Coordinator (MOU Sec. C.a.ii)</div><div class="contact-handle">@web3tree</div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;">Keynote Mar 28 10:30AM</div></div></div>
+      <div class="contact-card"><div class="contact-avatar">💜</div><div><div class="contact-name">Nicole Gomez</div><div class="contact-role">Sui PH Team / Coordinator</div><div class="contact-handle">@nicgomez</div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;">Attended Mar 28 full day</div></div></div>
+      <div class="contact-card"><div class="contact-avatar">⚙️</div><div><div class="contact-name">Jianyi</div><div class="contact-role">Sui DevRel (Technical)</div><div class="contact-handle">@zero_x_j</div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;">DeepSurge · Installation guide</div></div></div>
+    </div>
+    <div class="section-title">DEVCON Chapter Leads</div>
+    <div class="grid-3 mb-20">
+      <div class="contact-card"><div class="contact-avatar" style="font-size:11px;font-weight:800;font-family:'Space Mono',monospace;">1</div><div><div class="contact-name">Lady Diane Casilang</div><div class="contact-role">Manila – NCR · Merch Custodian · Content Update</div><div class="contact-handle">C3 GC</div></div></div>
+      <div class="contact-card"><div class="contact-avatar" style="font-size:11px;font-weight:800;font-family:'Space Mono',monospace;">2</div><div><div class="contact-name">Rolf Genree Garces</div><div class="contact-role">Tacloban – EV</div><div class="contact-handle">Sui Training GC</div></div></div>
+      <div class="contact-card"><div class="contact-avatar" style="font-size:11px;font-weight:800;font-family:'Space Mono',monospace;">3</div><div><div class="contact-name">Ted Hyacinth Aspera</div><div class="contact-role">Iloilo – WV</div><div class="contact-handle"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2b5f4a585b4e594a6b4f4e5d484445055b43">[email&#160;protected]</a></div></div></div>
+      <div class="contact-card"><div class="contact-avatar" style="font-size:11px;font-weight:800;font-family:'Space Mono',monospace;">4</div><div><div class="contact-name">Zhi / Zhor El (VP)</div><div class="contact-role">Bukidnon</div><div class="contact-handle"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c9aea4bda8aba8a4a689adacbfaaa6a7e7b9a1">[email&#160;protected]</a></div></div></div>
+      <div class="contact-card"><div class="contact-avatar" style="font-size:11px;font-weight:800;font-family:'Space Mono',monospace;">5</div><div><div class="contact-name">Joash Requiez</div><div class="contact-role">Pampanga</div><div class="contact-handle">Sui Training GC</div></div></div>
+    </div>
+    <div class="section-title">Content Update Team</div>
+    <div class="grid-2">
+      <div class="contact-card"><div class="contact-avatar">📝</div><div><div class="contact-name">Mike + Lady Diane Casilang</div><div class="contact-role">Updating code camp content, installation guide, and procedures based on Letran pilot learnings</div><div class="contact-handle">All chapters must use updated version</div></div></div>
+      <div class="contact-card"><div class="contact-avatar">📋</div><div><div class="contact-name">Marica</div><div class="contact-role">Iloilo On-ground Lead — Apr 18 Sui Dev Event</div><div class="contact-handle">Working with Ted Aspera</div></div></div>
+    </div>
+  </div>
+
+  <!-- ========== CONTENT ========== -->
+  <div id="panel-content" class="panel">
+    <div class="note-box"><strong>⚠ Content Update in Progress:</strong> Mike and Lady are updating the code camp content, installation guide, and installation procedures based on Letran pilot learnings. All chapters must use the updated version — do NOT use pre-Manila materials.</div>
+    <div class="section-title">10-Step Code Camp Program (All Chapters)</div>
+    <div class="info-box"><strong>Student Deliverable:</strong> Vercel app + Sui mainnet object deployed (Level 1 folio) &nbsp;·&nbsp; <strong>Completion Proof:</strong> Exercise Completion Form → Sui Foundation Q2 reporting</div>
+    <div class="grid-2 mb-20">
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">1</div><div style="font-weight:700;font-size:12px;">Account Preparation Basics</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">2</div><div style="font-weight:700;font-size:12px;">Environment Verification</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">3</div><div style="font-weight:700;font-size:12px;">Configure Sui Client</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">4</div><div style="font-weight:700;font-size:12px;">Fork Git Repository and Clone</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;"><div class="step-badge">5</div><div style="font-weight:700;font-size:12px;">Manage Gas &amp; Publishing of Package</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">6</div><div style="font-weight:700;font-size:12px;">Object Deployment &amp; Personal Portfolio Setup</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">7</div><div style="font-weight:700;font-size:12px;">Run Frontend</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">8</div><div style="font-weight:700;font-size:12px;">Push Changes to GitHub Repository</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px solid rgba(77,162,255,0.06);"><div class="step-badge">9</div><div style="font-weight:700;font-size:12px;">Frontend Deployment (Vercel)</div></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:6px 0;"><div class="step-badge">10</div><div style="font-weight:700;font-size:12px;">Hackathon Announcements + Optional Advanced Exercises</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-title">Troubleshooting — 403 Forbidden Error on Sui Install</div>
+    <div class="card mb-20">
+      <pre style="font-family:'Space Mono',monospace;font-size:11px;color:var(--sui-teal);line-height:2;overflow-x:auto;white-space:pre-wrap;word-break:break-all;">wget https://github.com/MystenLabs/sui/releases/download/testnet-v1.44.2/sui-testnet-v1.44.2-ubuntu-x86_64.tgz
+tar -xvf sui-testnet-v1.44.2-ubuntu-x86_64.tgz
+chmod +x sui
+sudo mv sui /usr/local/bin/
+sui --version</pre>
+      <div style="margin-top:10px;padding:9px 12px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:6px;font-size:11px;color:var(--text-dim);">💡 <strong style="color:var(--sui-teal);">Offline Install:</strong> Use USB thumb drives with zipped Sui binaries for restricted WiFi labs.</div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div style="font-weight:700;margin-bottom:10px;font-size:12px;">Post-Event SITREP Template</div><pre style="font-size:10px;color:var(--text-dim);font-family:'Space Mono',monospace;line-height:2;white-space:pre-wrap;">EVENT SITREP — [Chapter Name]
+Date: [event date]
+Lead: [name]
+Actual pax: [number] (target: [number])
+Session: [Part 1 only / Part 1 + Dinner]
+Key outcomes: [projects, DeepSurge, moments]
+BIR invoices: [collected / pending]
+Liquidation: [submitted / pending by date]
+Issues: [list or NONE]</pre></div>
+      <div class="card"><div style="font-weight:700;margin-bottom:10px;font-size:12px;">Ocular Report Template</div><pre style="font-size:10px;color:var(--text-dim);font-family:'Space Mono',monospace;line-height:2;white-space:pre-wrap;">OCULAR REPORT — [Chapter Name]
+Date: [date] · Lead: [name]
+Venue: [venue name]
+Labs: [number] labs, [number] machines each
+Network: [stable / restricted / TBC]
+IT admin contact: [name]
+School org contact: [name]
+Roadblocks found: [list or NONE]
+Installation start date: [date]</pre></div>
+    </div>
+  </div>
+
+
+  <!-- ================================================================ -->
+  <!-- CHAPTER SUBPAGES -->
+  <!-- ================================================================ -->
+
+  <!-- ---- CH1: MANILA ---- -->
+  <div id="panel-chapter-manila" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero">
+      <div class="ch-hero-num">01</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-done">✓ COMPLETED</span>
+        <span class="badge" style="background:rgba(77,162,255,0.1);color:var(--sui-blue);border:1px solid rgba(77,162,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 1 · NCR</span>
+      </div>
+      <div class="ch-hero-title">Manila – NCR</div>
+      <div class="ch-hero-sub">28 March 2026 (Saturday) · Colegio de San Juan de Letran, Intramuros<br>Lead: Lady Diane Casilang · Co-leads: Mike, Cohort 3 &amp; 4 Interns</div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event Date</div><div class="ch-meta-value teal">28 Mar 2026</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Days Since</div><div class="ch-meta-value blue" id="manila-days-since">16 days ago</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target</div><div class="ch-meta-value blue">150</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Actual Pax</div><div class="ch-meta-value yellow">TBC ⚠</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value teal">✓ Distributed</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Liquidation</div><div class="ch-meta-value yellow">⚠ Confirm</div></div>
+      </div>
+    </div>
+    <div class="note-box"><strong>📝 Content Update:</strong> Mike and Lady are updating the code camp content, installation guide, and installation procedures based on learnings from this Letran pilot. All subsequent chapters will use the updated version.</div>
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Mar 28, 2026 · Letran, Intramuros</div>
+      <div class="tminus-legend">
+        <div style="width:100%;font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;">📖 How to read this checklist — counting down to event day:</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--pre">PRE</span> Done before the countdown started</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--num">30 days before</span> = T-30 · Ocular visit</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--num">21 days before</span> = T-21 · Installation</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--num">14 days before</span> = T-14 · Verified &amp; ready</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--num">7 days before</span> = T-7 · Dry run</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--num">3 days before</span> = T-3 · Final prep</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--event">T-0 🎉</span> Event day</div>
+        <div class="tminus-legend__item"><span class="tminus-legend__label tminus-legend__label--post">T+3 / T+7</span> Wrap-up: pax count, receipts, report</div>
+      </div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">T-30</div><div><div class="tminus-task">Ocular visit — Letran Intramuros</div><div class="tminus-date">Feb 26, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">T-21</div><div><div class="tminus-task">Software installation begins (3–5 hrs per lab)</div><div class="tminus-date">Mar 7, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">T-14</div><div><div class="tminus-task">Installation verified · roadblocks resolved</div><div class="tminus-date">Mar 14, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · all mentors present</div><div class="tminus-date">Mar 21, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">T-3</div><div><div class="tminus-task">Final logistics: passes, pax confirmation, merch packed</div><div class="tminus-date">Mar 25, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Manila Pilot · Letran Intramuros</b></div><div class="tminus-date">Mar 28, 2026</div></div><span class="badge badge-done">✓ Executed</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">T+3</div><div><div class="tminus-task"><b>Log pax count</b> · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">Mar 31, 2026</div></div><span class="badge badge-risk">🔴 Overdue</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">T+7</div><div><div class="tminus-task">Jedd confirms liquidation · HQ Finance updated</div><div class="tminus-date">Apr 4, 2026</div></div><span class="badge badge-warn">⚠ Confirm</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--yellow);">OPEN</div><div><div class="tminus-task"><b>Post-pilot content update</b> — Mike + Lady documenting learnings for all chapters</div><div class="tminus-date">In progress</div></div><span class="badge badge-warn">⚠ In Progress</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Pilot Notes — For All Other Chapters</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:2.2;">
+        <div>✅ Manila = benchmark. Do ocular <strong style="color:var(--text);">1 month before</strong>, resolve roadblocks <strong style="color:var(--text);">3 weeks before</strong></div>
+        <div>✅ Offline USB install strategy for restricted school WiFi — works</div>
+        <div>✅ 4-hour dry run format validated</div>
+        <div>⚠ Updated installation guide being prepared by Mike + Lady — wait for final version before proceeding</div>
+        <div>⚠ Per-chapter qty allocation must be confirmed in tracker before packing begins</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- CH2: TACLOBAN ---- -->
+  <div id="panel-chapter-tacloban" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero">
+      <div class="ch-hero-num">02</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-warn">⚠ RESCHEDULING</span>
+        <span class="badge" style="background:rgba(77,162,255,0.1);color:var(--sui-blue);border:1px solid rgba(77,162,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 2 · EASTERN VISAYAS</span>
+      </div>
+      <div class="ch-hero-title">Tacloban – Eastern Visayas</div>
+      <div class="ch-hero-sub">Original Date: 11 Apr 2026 · <strong style="color:var(--yellow)">New Schedule: Waiting for LNU confirmation</strong><br>Venue: Leyte Normal University · Lead: Rolf Genree Garces · Co-leads: Michael Lance</div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event Date</div><div class="ch-meta-value yellow">TBD — Rescheduling</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Countdown</div><div class="ch-meta-value yellow">Awaiting new sched</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target</div><div class="ch-meta-value blue">100</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Actual Pax</div><div class="ch-meta-value yellow">—</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value yellow">⚠ Check status</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Finance</div><div class="ch-meta-value teal">Seed fund sent</div></div>
+      </div>
+    </div>
+    <div class="warn-box"><strong>🔴 Status:</strong> Original Apr 11 date did not push through. Waiting for new LNU schedule. Every week of delay compresses the T-minus timeline (ocular → install → dry run). Rolf must confirm new date ASAP.</div>
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Tacloban LNU — Date TBD (Working backwards once confirmed)</div>
+      <div class="info-box" style="margin-bottom:12px;"><strong>⚠ Date TBD</strong> — All T-minus targets below are relative. Once Rolf confirms the new LNU date, fill in the actual calendar dates and immediately flag if any windows are already compressed.</div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Mentor training (10 required) — 5 confirmed Mar 10 · need 5 more</div><div class="tminus-date">Mar 10, 2026</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Sean Francis one-day format confirmed</div><div class="tminus-date">Confirmed</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 NOW</div><div><div class="tminus-task"><b>Confirm new event date with LNU — must lock before May 1</b></div><div class="tminus-date">This week</div></div><span class="badge badge-risk">🔴 Blocking</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-30</div><div><div class="tminus-task">Formal ocular visit to LNU · confirm 2–3 labs + machine count</div><div class="tminus-date">TBD – 30 days before event</div></div><span class="badge badge-warn">⚠ Pending date</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-21</div><div><div class="tminus-task">Software installation begins · 3–5 hrs per lab · use updated guide (Mike + Lady)</div><div class="tminus-date">TBD – 21 days before event</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-14</div><div><div class="tminus-task">Installation verified · all roadblocks resolved</div><div class="tminus-date">TBD – 14 days before event</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · all mentors · student mobilization</div><div class="tminus-date">TBD – 7 days before event</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-3</div><div><div class="tminus-task">Final logistics: gate passes, pax confirmation, merch packed</div><div class="tminus-date">TBD – 3 days before event</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Tacloban · Leyte Normal University</b></div><div class="tminus-date">TBD</div></div><span class="badge badge-tbc">TBD</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+3</div><div><div class="tminus-task">Pax count logged · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">TBD + 3 days</div></div><span class="badge badge-pending">— Upcoming</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Key Notes</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:2.2;">
+        <div>⚠ Sean Francis confirmed for one-day format — coordinate if date shifts significantly</div>
+        <div>⚠ Use updated installation guide from Mike + Lady (post-Letran pilot version)</div>
+        <div>⚠ Once new date confirmed — immediately compress T-minus timeline and flag any risks</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- CH3: ILOILO ---- -->
+  <div id="panel-chapter-iloilo" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero">
+      <div class="ch-hero-num">03</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-warn">⚠ IN PROGRESS</span>
+        <span class="badge" style="background:rgba(77,162,255,0.1);color:var(--sui-blue);border:1px solid rgba(77,162,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 3 · WESTERN VISAYAS</span>
+      </div>
+      <div class="ch-hero-title">Iloilo – Western Visayas</div>
+      <div class="ch-hero-sub">Lead: Ted Hyacinth Aspera · On-ground (Apr 18): Marica · Code Camp (May 16) Leads: Ted Aspera &amp; Jose Arron<br>Two events: Apr 18 (Sui Developer Event) + May 16 (Code Camp · CPU)</div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event A Date</div><div class="ch-meta-value yellow">18 Apr 2026</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Countdown A</div><div class="ch-meta-value yellow" id="iloilo-a-cd">5 days</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Event B Date</div><div class="ch-meta-value blue">16 May 2026</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Countdown B</div><div class="ch-meta-value blue" id="iloilo-b-cd">33 days · ~5 wks</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target (B)</div><div class="ch-meta-value blue">120</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value teal">✓ Sent</div></div>
+      </div>
+    </div>
+    <div class="note-box"><strong>⚠ Important Distinction:</strong> April 18 is a <strong style="color:var(--yellow)">Sui-Supported Developer Event</strong> — NOT a code camp. Led by Marica and Ted. Sui Foundation NOT attending. ABA confirmed. The actual Iloilo Code Camp is May 16 at Central Philippine University.</div>
+    <div class="note-box" style="background:rgba(0,212,170,0.06);border-color:rgba(0,212,170,0.25);"><strong style="color:var(--sui-teal);">📦 Merch Sent:</strong> Iloilo code camp merch has already been sent. Ted to confirm receipt.</div>
+
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Apr 18 Sui Developer Event · WVSU BINHI TBI</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">Leads: Marica + Ted · <span style="color:var(--red);font-weight:700;">5 days away</span> — Sui Foundation NOT attending. ABA confirmed.</div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Seed fund received</div><div class="tminus-date">Sent Mar 24</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 NOW</div><div><div class="tminus-task"><b>Confirm venue with WVSU — 5 days out</b></div><div class="tminus-date">ASAP</div></div><span class="badge badge-risk">🔴 Urgent</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 NOW</div><div><div class="tminus-task"><b>Ocular visit to WVSU BINHI TBI Building</b></div><div class="tminus-date">This week</div></div><span class="badge badge-risk">🔴 Urgent</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 NOW</div><div><div class="tminus-task"><b>Student mobilization + registration</b></div><div class="tminus-date">This week — 5 days out</div></div><span class="badge badge-risk">🔴 Urgent</span></div>
+        <div class="tminus-row tminus-row--urgent"><div class="tminus-label">⚠ NOW</div><div><div class="tminus-task">Sui + ABA + BOI logos on ALL materials · Tagline "Supported by Sui, ABA and BOI" on all posters</div><div class="tminus-date">All pre/post materials</div></div><span class="badge badge-warn">⚠ Ongoing</span></div>
+        <div class="tminus-row tminus-row--urgent"><div class="tminus-label">⚠ NOW</div><div><div class="tminus-task">Looping sponsor videos — set up before program + during breaks</div><div class="tminus-date">Event day setup</div></div><span class="badge badge-warn">⚠ Pending</span></div>
+        <div class="tminus-row tminus-row--urgent"><div class="tminus-label">⚠ NOW</div><div><div class="tminus-task">Dom: Confirm on-ground lead for Apr 18 SHEisDEVCON Summit</div><div class="tminus-date">ASAP</div></div><span class="badge badge-warn">⚠ Confirm</span></div>
+        <div class="tminus-row tminus-row--urgent"><div class="tminus-label">⚠ NOW</div><div><div class="tminus-task">Jedd: Send Sui/ABA/BOI branding assets to Ted</div><div class="tminus-date">ASAP</div></div><span class="badge badge-warn">⚠ Pending</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — SHEisDEVCON Iloilo · FWTF Summit &amp; Demo Day</b></div><div class="tminus-date">Apr 18, 2026</div></div><span class="badge badge-warn">⚠ 5 days</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+3</div><div><div class="tminus-task">BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">Apr 21, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Iloilo Code Camp · May 16, 2026 · CPU Jaro</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">Leads: <strong style="color:var(--text)">Ted Aspera &amp; Jose Arron</strong> · <span style="color:var(--sui-blue)">33 days away · ~5 weeks</span></div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Merch sent to Iloilo · Ted to confirm receipt</div><div class="tminus-date">Sent</div></div><span class="badge badge-done">✓ Sent</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 T-30</div><div><div class="tminus-task"><b>Confirm CPU venue (pencil-booked) · Ocular visit to CPU labs</b></div><div class="tminus-date">Apr 16, 2026 <span style="color:var(--red)">— OVERDUE</span></div></div><span class="badge badge-risk">🔴 Overdue</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-21</div><div><div class="tminus-task">Lab installation · 3–5 hrs per lab · use updated guide (Mike + Lady)</div><div class="tminus-date">Apr 25, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-14</div><div><div class="tminus-task">Installation verified · mentor training complete (10 required)</div><div class="tminus-date">May 2, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · student mobilization</div><div class="tminus-date">May 9, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-3</div><div><div class="tminus-task">Final logistics: gate passes, pax confirmation, merch confirmed</div><div class="tminus-date">May 13, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Iloilo Sui Code Camp · Central Philippine University, Jaro</b></div><div class="tminus-date">May 16, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+3</div><div><div class="tminus-task">Pax count logged · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">May 19, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- CH4: BUKIDNON ---- -->
+  <div id="panel-chapter-bukidnon" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero">
+      <div class="ch-hero-num">04</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-done">✓ FINANCE RESOLVED</span>
+        <span class="badge" style="background:rgba(77,162,255,0.1);color:var(--sui-blue);border:1px solid rgba(77,162,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 4 · MINDANAO</span>
+      </div>
+      <div class="ch-hero-title">Bukidnon</div>
+      <div class="ch-hero-sub">6 May 2026 (Wednesday) · Bukidnon State University<br>Lead: Zhi · VP: Zhor El · Contact: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="76111b021714171b193612130015191858061e">[email&#160;protected]</a></div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event Date</div><div class="ch-meta-value blue">6 May 2026</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Countdown</div><div class="ch-meta-value blue" id="bukidnon-cd">23 days · ~3 wks</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target</div><div class="ch-meta-value blue">100</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Finance</div><div class="ch-meta-value teal">✓ Resolved (Cash Adv)</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value red">⚠ Not Yet Sent</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Mentors</div><div class="ch-meta-value yellow">Partial (4 confirmed)</div></div>
+      </div>
+    </div>
+    <div class="info-box" style="border-color:rgba(0,212,170,0.3);background:rgba(0,212,170,0.06)"><strong style="color:var(--sui-teal)">✓ Financial issue resolved</strong> — Seed fund disbursed via Cash Advance. Zhi + Jedd confirmed. <strong style="color:var(--red)">⚠ Merch not yet sent</strong> — pack and ship before T-7 (Apr 29).</div>
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Bukidnon Code Camp · May 6, 2026 · BSU · 23 Days Out</div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Mentor mainnet addresses submitted (Zhor, Ray, Mark, Rio)</div><div class="tminus-date">Confirmed</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 NOW</div><div><div class="tminus-task"><b>Pack and ship merch to Bukidnon — not yet sent</b></div><div class="tminus-date">Must arrive before T-3 (May 3)</div></div><span class="badge badge-risk">🔴 Action Needed</span></div>
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Seed fund — financial issue resolved via Cash Advance</div><div class="tminus-date">Resolved</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 T-30</div><div><div class="tminus-task"><b>Ocular visit at BSU · confirm labs + machine count</b></div><div class="tminus-date">Apr 6, 2026 <span style="color:var(--red)">— OVERDUE</span></div></div><span class="badge badge-risk">🔴 Do Now</span></div>
+        <div class="tminus-row tminus-row--overdue"><div class="tminus-label">🔴 T-21</div><div><div class="tminus-task"><b>Software installation begins · use updated guide (Mike + Lady)</b></div><div class="tminus-date">Apr 15, 2026 <span style="color:var(--red)">— OVERDUE</span></div></div><span class="badge badge-risk">🔴 Do Now</span></div>
+        <div class="tminus-row tminus-row--urgent"><div class="tminus-label">⚠ T-14</div><div><div class="tminus-task">Installation verified · complete mentor training — 10 required (4 confirmed: Zhor, Ray, Mark, Rio · need 6 more)</div><div class="tminus-date">Apr 22, 2026</div></div><span class="badge badge-warn">⚠ 9 days</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · student mobilization</div><div class="tminus-date">Apr 29, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-3</div><div><div class="tminus-task">Final logistics: gate passes, pax confirmation, merch confirmed on-site</div><div class="tminus-date">May 3, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Bukidnon Sui Code Camp · Bukidnon State University</b></div><div class="tminus-date">May 6, 2026</div></div><span class="badge badge-pending">— 23 days</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+3</div><div><div class="tminus-task">Pax count logged · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">May 9, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- CH5: PAMPANGA ---- -->
+  <div id="panel-chapter-pampanga" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero">
+      <div class="ch-hero-num">05</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-pending">⚠ ACTIVATING</span>
+        <span class="badge" style="background:rgba(77,162,255,0.1);color:var(--sui-blue);border:1px solid rgba(77,162,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 5 · CENTRAL LUZON</span>
+      </div>
+      <div class="ch-hero-title">Pampanga</div>
+      <div class="ch-hero-sub">24 June 2026 (Wednesday) · City College of Angeles, Arayat Blvd, Angeles, Pampanga<br>Lead: <strong style="color:var(--sui-teal)">Joash Requiez</strong> · 📌 Pencil-booked — Chapter request for Sui Move Code Camp slot</div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event Date</div><div class="ch-meta-value teal">24 Jun 2026</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Countdown</div><div class="ch-meta-value teal" id="pampanga-cd">72 days · 10 weeks</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target</div><div class="ch-meta-value blue">130</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Lead</div><div class="ch-meta-value teal">Joash Requiez</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value yellow">⚠ Not packed yet</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Venue</div><div class="ch-meta-value teal">✓ Dean confirmed</div></div>
+      </div>
+    </div>
+    <div class="info-box">📌 <strong>Pencil-booked</strong> — Pampanga chapter has requested a Sui Move Code Camp slot at City College of Angeles (CCA), Arayat Blvd, Angeles, Pampanga. June 24, 2026. Lead: Joash Requiez. Awaiting formal Sui Foundation slot confirmation.</div>
+    <div class="card mb-16">
+      <div class="section-title">Event Countdown Checklist · Pampanga Code Camp · Jun 24, 2026 · CCA · 72 Days Out</div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Chapter lead confirmed — Joash Requiez</div><div class="tminus-date">Confirmed</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--yellow);">NOW</div><div><div class="tminus-task"><b>Confirm Sui Move Code Camp slot with Sui Foundation</b></div><div class="tminus-date">ASAP — slot currently pencil-booked</div></div><span class="badge badge-warn">📌 Pencil-booked</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-30</div><div><div class="tminus-task">Formal ocular visit to CCA · confirm labs + machine count · IT admin contact</div><div class="tminus-date">May 25, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-21</div><div><div class="tminus-task">Software installation begins · 3–5 hrs per lab · use updated guide (Mike + Lady)</div><div class="tminus-date">Jun 3, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-14</div><div><div class="tminus-task">Installation verified · mentor training complete (10 required)</div><div class="tminus-date">Jun 10, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · all mentors present · student mobilization</div><div class="tminus-date">Jun 17, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T-3</div><div><div class="tminus-task">Final logistics: gate passes, pax confirmation, merch packed + shipped</div><div class="tminus-date">Jun 21, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--sui-teal);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Pampanga Sui Move Code Camp · City College of Angeles, Arayat Blvd, Angeles</b></div><div class="tminus-date">Jun 24, 2026</div></div><span class="badge badge-pending">— 72 days</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+3</div><div><div class="tminus-task">Pax count logged · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">Jun 27, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+        <div class="tminus-row tminus-row--upcoming"><div class="tminus-label">T+7</div><div><div class="tminus-task">Jedd confirms liquidation · HQ Finance updated</div><div class="tminus-date">Jul 1, 2026</div></div><span class="badge badge-pending">— Upcoming</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- CH6: LAGUNA ---- -->
+  <div id="panel-chapter-laguna" class="panel">
+    <button class="back-btn" onclick="goBack()">← Back to All Chapters</button>
+    <div class="ch-hero" style="border-color:rgba(120,100,255,0.25);">
+      <div class="ch-hero-num" style="color:rgba(120,100,255,0.1);">06</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+        <span class="badge badge-tbc">TBC — AT RISK OF CANCELLATION</span>
+        <span class="badge" style="background:rgba(120,100,255,0.12);color:#A78BFA;border:1px solid rgba(120,100,255,0.3);font-family:'Space Mono',monospace;font-size:9px;">CHAPTER 6 · CALABARZON</span>
+      </div>
+      <div class="ch-hero-title" style="color:#C4B5FD;">Laguna</div>
+      <div class="ch-hero-sub">Date: TBC — Waiting for June confirmation<br>Lead: <strong style="color:#A78BFA;">John Danmel</strong> · If not confirmed by June, slot is <strong style="color:var(--red)">CANCELLED</strong>. No venue or timeline started yet.</div>
+      <div class="ch-meta-grid">
+        <div class="ch-meta-item"><div class="ch-meta-label">Event Date</div><div class="ch-meta-value purple">TBC</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Confirmation</div><div class="ch-meta-value purple">Awaiting June</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Pax Target</div><div class="ch-meta-value purple">TBC</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Lead</div><div class="ch-meta-value" style="color:#A78BFA;">John Danmel</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Venue</div><div class="ch-meta-value purple">TBC</div></div>
+        <div class="ch-meta-item"><div class="ch-meta-label">Merch</div><div class="ch-meta-value purple">TBC</div></div>
+      </div>
+    </div>
+    <div class="warn-box"><strong>🔴 Risk:</strong> Slot is unconfirmed. Lead assigned: John Danmel. No venue, no timeline yet. If June confirmation does not come through, this slot is cancelled. Dom to make final call.</div>
+    <div class="card">
+      <div class="section-title">Event Countdown Checklist · Laguna — Date TBC (All items on hold until June confirmation)</div>
+      <div class="info-box" style="margin-bottom:12px;"><strong>⏳ Waiting on go/no-go</strong> — Once Dom confirms the June slot, this checklist activates. Working backwards from the confirmed date, all T-minus windows will need to be set immediately.</div>
+      <div class="tminus-wrap">
+        <div class="tminus-row tminus-row--done"><div class="tminus-label" style="color:var(--green);">PRE</div><div><div class="tminus-task">Chapter lead assigned — John Danmel</div><div class="tminus-date">Assigned</div></div><span class="badge badge-done">✓ Done</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:#A78BFA;">NOW</div><div><div class="tminus-task"><b>John Danmel: Confirm June go/no-go for Laguna slot with Dom</b></div><div class="tminus-date">Awaiting June 2026 · John Danmel to follow up</div></div><span class="badge badge-tbc">TBC</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:#A78BFA;">NOW</div><div><div class="tminus-task">John Danmel: Scout venue in Laguna · Identify school partner</div><div class="tminus-date">Start now — don't wait for confirmation</div></div><span class="badge badge-tbc">TBC</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-30</div><div><div class="tminus-task">Formal ocular visit · confirm labs + machine count · IT admin contact</div><div class="tminus-date">TBD — 30 days before confirmed event date</div></div><span class="badge badge-tbc">On Hold</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-21</div><div><div class="tminus-task">Software installation begins · use updated guide from Mike + Lady</div><div class="tminus-date">TBD — 21 days before event</div></div><span class="badge badge-tbc">On Hold</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-14</div><div><div class="tminus-task">Installation verified · mentor training complete (10 required)</div><div class="tminus-date">TBD — 14 days before event</div></div><span class="badge badge-tbc">On Hold</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-7</div><div><div class="tminus-task">Dry run — full 4-hour rehearsal · student mobilization</div><div class="tminus-date">TBD — 7 days before event</div></div><span class="badge badge-tbc">On Hold</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-3</div><div><div class="tminus-task">Final logistics: gate passes, pax confirmation, merch packed + shipped</div><div class="tminus-date">TBD — 3 days before event</div></div><span class="badge badge-tbc">On Hold</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T-0 🎉</div><div><div class="tminus-task"><b>EVENT DAY — Laguna Sui Code Camp</b></div><div class="tminus-date">TBD</div></div><span class="badge badge-tbc">TBC</span></div>
+        <div class="tminus-row"><div class="tminus-label" style="color:var(--text-dim);">T+3</div><div><div class="tminus-task">Pax count logged · BIR receipts to Jedd · SITREP submitted</div><div class="tminus-date">TBD + 3 days</div></div><span class="badge badge-tbc">On Hold</span></div>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:rgba(255,77,106,0.06);border:1px solid rgba(255,77,106,0.2);border-radius:6px;font-size:12px;color:var(--text-dim);">
+        🔴 If June confirmation does not come through — this slot is <strong style="color:var(--red)">CANCELLED</strong> and all tasks above are dropped.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Sui × DEVCON HQ Tracker &nbsp;·&nbsp; Q2 Narrative Report: June 30, 2026 → Sui Foundation<br>
+    Owner: Dom De Leon (ExDir) · Jedd Fernando (Ops Manager) &nbsp;·&nbsp; Last updated: Apr 13, 2026<br>
+    Chapter URLs: #chapter/manila · #chapter/tacloban · #chapter/iloilo · #chapter/bukidnon · #chapter/pampanga · #chapter/laguna
+  </div>
+</div>
+
+<script>
+  // ---- expose on window so inline onclick attrs always resolve ----
+  var _lastMainPanel = 'dsu';
+  var _liveRefreshTimer = null;
+  var DASHBOARD_API_BASE = window.DASHBOARD_API_BASE || new URLSearchParams(window.location.search).get('apiBase') || 'http://localhost:4000/api';
+
+  function _el(id) {
+    return document.getElementById(id);
+  }
+
+  function _escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function _setMetric(id, value) {
+    var target = _el(id);
+    if (target) target.textContent = value;
+  }
+
+  function _setApiStatus(text, ok) {
+    var apiStatus = _el('api-status');
+    if (!apiStatus) return;
+    apiStatus.textContent = text;
+    apiStatus.className = ok ? 'badge badge-done' : 'badge badge-risk';
+  }
+
+  function _formatDate(dateText) {
+    if (!dateText) return 'N/A';
+    var d = new Date(dateText);
+    if (Number.isNaN(d.getTime())) return dateText;
+    return d.toLocaleString();
+  }
+
+  async function fetchMetrics() {
+    var response = await fetch(DASHBOARD_API_BASE + '/metrics');
+    if (!response.ok) throw new Error('Metrics request failed');
+    return response.json();
+  }
+
+  async function fetchUpdates(limit) {
+    var response = await fetch(DASHBOARD_API_BASE + '/updates?limit=' + (limit || 12));
+    if (!response.ok) throw new Error('Updates request failed');
+    return response.json();
+  }
+
+  function renderUpdates(items) {
+    var feed = _el('updates-feed');
+    if (!feed) return;
+    if (!items || !items.length) {
+      feed.innerHTML = '<div class="live-feed-item"><div class="live-feed-item__meta">No updates yet.</div></div>';
+      return;
+    }
+
+    feed.innerHTML = items.map(function(item) {
+      return [
+        '<div class="live-feed-item">',
+        '<div class="live-feed-item__title">' + _escapeHtml(item.title) + '</div>',
+        '<div class="live-feed-item__meta">',
+        _escapeHtml(item.chapter || 'N/A') + ' · ' + _escapeHtml(item.status || 'N/A') + '<br>',
+        'Owner: ' + _escapeHtml(item.owner || 'N/A') + '<br>',
+        'Event: ' + _escapeHtml(item.event_date || 'N/A') + '<br>',
+        'Created: ' + _escapeHtml(_formatDate(item.created_at)),
+        item.notes ? '<br>Notes: ' + _escapeHtml(item.notes) : '',
+        '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
+  async function loadLiveData() {
+    try {
+      var healthResponse = await fetch(DASHBOARD_API_BASE + '/health');
+      _setApiStatus(healthResponse.ok ? 'API: Connected' : 'API: Error', healthResponse.ok);
+
+      var metrics = await fetchMetrics();
+      _setMetric('metric-total-updates', metrics.totalUpdates || 0);
+      _setMetric('metric-completed', metrics.completed || 0);
+      _setMetric('metric-in-progress', metrics.inProgress || 0);
+      _setMetric('metric-open-risks', metrics.openRisks || 0);
+      _setMetric('metric-pax-actual', metrics.totalPaxActual || 0);
+
+      var updates = await fetchUpdates(12);
+      renderUpdates(updates.items || []);
+    } catch (error) {
+      _setApiStatus('API: Offline', false);
+      var formStatus = _el('form-status');
+      if (formStatus) formStatus.textContent = 'Could not load live data. Check backend and CORS settings.';
+    }
+  }
+
+  function initLiveOpsForm() {
+    var form = _el('live-update-form');
+    var button = _el('submit-update-btn');
+    var formStatus = _el('form-status');
+    if (!form || !button || !formStatus) return;
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      button.disabled = true;
+      formStatus.textContent = 'Saving update...';
+
+      var fd = new FormData(form);
+      var payload = {
+        chapter: fd.get('chapter'),
+        owner: fd.get('owner'),
+        title: fd.get('title'),
+        status: fd.get('status'),
+        event_date: fd.get('event_date') || null,
+        notes: fd.get('notes') || null,
+        pax_target: fd.get('pax_target') || null,
+        pax_actual: fd.get('pax_actual') || null,
+        is_risk: fd.get('is_risk') === 'on'
+      };
+
+      try {
+        var response = await fetch(DASHBOARD_API_BASE + '/updates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save update');
+
+        var telegramNote = result.telegram && result.telegram.error
+          ? ' Saved, but Telegram failed: ' + result.telegram.error
+          : ' Saved and Telegram notified.';
+
+        formStatus.textContent = 'Update created.' + telegramNote;
+        form.reset();
+        await loadLiveData();
+      } catch (error) {
+        formStatus.textContent = 'Error: ' + error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  function initLiveOps() {
+    initLiveOpsForm();
+    loadLiveData();
+    if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
+    _liveRefreshTimer = setInterval(loadLiveData, 30000);
+  }
+
+  window.hideAllPanels = function() {
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  };
+
+  window.switchTab = function(id, btn) {
+    window.hideAllPanels();
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + id);
+    if (panel) panel.classList.add('active');
+    if (btn) btn.classList.add('active');
+    _lastMainPanel = id;
+    try { history.replaceState(null, '', '#' + id); } catch(e){}
+  };
+
+  window.showChapter = function(slug) {
+    window.hideAllPanels();
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    var panel = document.getElementById('panel-chapter-' + slug);
+    if (panel) panel.classList.add('active');
+    document.querySelectorAll('.tab').forEach(function(t) {
+      var oc = t.getAttribute('onclick') || '';
+      if (oc.indexOf(slug) !== -1) t.classList.add('active');
+    });
+    try { history.replaceState(null, '', '#chapter/' + slug); } catch(e){}
+    window.scrollTo(0,0);
+  };
+
+  window.goBack = function() {
+    window.showMainPanel(_lastMainPanel);
+  };
+
+  window.showMainPanel = function(id) {
+    window.hideAllPanels();
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + id);
+    if (panel) panel.classList.add('active');
+    document.querySelectorAll('.tab').forEach(function(t) {
+      var oc = t.getAttribute('onclick') || '';
+      if (oc.indexOf("'" + id + "'") !== -1) t.classList.add('active');
+    });
+    try { history.replaceState(null, '', '#' + id); } catch(e){}
+    window.scrollTo(0,0);
+  };
+
+  window.toggleChapter = function(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+  };
+
+  // ---- Countdowns ----
+  window.calcCountdowns = function() {
+    var now = new Date('2026-04-13');
+    var events = [
+      { date: '2026-04-18', ids: ['cd-iloilo-a','iloilo-a-cd'] },
+      { date: '2026-05-16', ids: ['cd-iloilo-b','iloilo-b-cd'] },
+      { date: '2026-05-06', ids: ['cd-bukidnon','bukidnon-cd'] },
+      { date: '2026-06-24', ids: ['cd-pampanga','pampanga-cd'] }
+    ];
+    events.forEach(function(ev) {
+      var d = new Date(ev.date);
+      var diff = Math.round((d - now) / (1000*60*60*24));
+      var weeks = Math.round(diff / 7);
+      var label = diff <= 0
+        ? Math.abs(diff) + ' days ago'
+        : diff + ' days' + (weeks >= 2 ? ' · ~' + weeks + ' wks' : '');
+      ev.ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = label;
+      });
+    });
+  };
+
+  // ---- Init on DOM ready ----
+  function _init() {
+    var hash = window.location.hash.replace('#','');
+    if (hash.indexOf('chapter/') === 0) {
+      window.showChapter(hash.replace('chapter/',''));
+    } else if (hash && document.getElementById('panel-' + hash)) {
+      window.showMainPanel(hash);
+    } else {
+      window.showMainPanel('dsu');
+    }
+    window.calcCountdowns();
+    initLiveOps();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _init);
+  } else {
+    _init();
+  }
+
+</script>
+</body>
+</html>
