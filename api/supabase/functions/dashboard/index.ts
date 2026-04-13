@@ -31,6 +31,13 @@ type DashboardEvent = {
   display_order: number;
 };
 
+type TelegramListItem = {
+  chapter: string;
+  title: string;
+  status: string;
+  dueDate: string | null;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
@@ -169,6 +176,64 @@ function isMissingRelationError(error: unknown): boolean {
   if (maybe.code === "42P01") return true;
   const message = String(maybe.message || "").toLowerCase();
   return message.includes("does not exist") || message.includes("relation") && message.includes("not found");
+}
+
+function normalizeStatus(status: string): string {
+  return status.trim().toLowerCase();
+}
+
+function isCompletedStatus(status: string): boolean {
+  const s = normalizeStatus(status);
+  return s === "completed" || s === "done";
+}
+
+function isLikelyRiskStatus(status: string): boolean {
+  const s = normalizeStatus(status);
+  return (
+    s.includes("risk") ||
+    s.includes("tbc") ||
+    s.includes("unconfirmed") ||
+    s.includes("pending") ||
+    s.includes("blocked") ||
+    s.includes("cancel")
+  );
+}
+
+function eventToTelegramListItem(event: DashboardEvent): TelegramListItem {
+  return {
+    chapter: event.chapter,
+    title: event.event_name,
+    status: event.status,
+    dueDate: event.event_date,
+  };
+}
+
+async function listDashboardEvents(options?: { limit?: number; risksOnly?: boolean; openOnly?: boolean }): Promise<TelegramListItem[]> {
+  const supabase = supabaseClient();
+  const limit = Math.max(1, Math.min(50, options?.limit ?? 10));
+
+  const { data, error } = await supabase
+    .from("dashboard_events")
+    .select("slug, chapter, event_name, event_date, event_kind, status, pax_target, display_order")
+    .order("display_order", { ascending: true })
+    .limit(limit * 3);
+
+  if (error) {
+    if (isMissingRelationError(error)) return [];
+    throw new Error(error.message);
+  }
+
+  let events = (data || []) as DashboardEvent[];
+
+  if (options?.openOnly) {
+    events = events.filter((item) => !isCompletedStatus(String(item.status || "")));
+  }
+
+  if (options?.risksOnly) {
+    events = events.filter((item) => isLikelyRiskStatus(String(item.status || "")));
+  }
+
+  return events.slice(0, limit).map(eventToTelegramListItem);
 }
 
 function manilaDateParts(date = new Date()): { year: number; month: number; day: number } {
@@ -517,6 +582,7 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "Available commands:",
       "/latest - show the latest updates",
       "/risk - show open risk updates",
+      "/risks - alias for /risk",
       "/tasks - show latest tasks",
       "/task_add chapter | owner | title | due_date | notes",
       "/task_update task_id | status | notes",
@@ -549,8 +615,23 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       .order("created_at", { ascending: false })
       .limit(5);
 
-    if (error) return `Failed to load updates: ${error.message}`;
-    if (!data?.length) return "No updates yet.";
+    if (error && !isMissingRelationError(error)) return `Failed to load updates: ${error.message}`;
+
+    if (!data?.length) {
+      try {
+        const fallback = await listDashboardEvents({ limit: 5 });
+        if (!fallback.length) return "No updates yet.";
+
+        const lines = ["Latest updates (from dashboard events):"];
+        for (const item of fallback) {
+          lines.push(`- ${item.chapter} | ${item.status} | ${item.title}`);
+        }
+        return lines.join("\n");
+      } catch (fallbackError) {
+        const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
+        return `Failed to load updates: ${message}`;
+      }
+    }
 
     const lines = ["Latest updates:"];
     for (const item of data) {
@@ -559,7 +640,7 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
     return lines.join("\n");
   }
 
-  if (normalized === "/risk") {
+  if (normalized === "/risk" || normalized === "/risks") {
     const { data, error } = await supabase
       .from("updates")
       .select("chapter, title, owner, status")
@@ -567,8 +648,23 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       .order("created_at", { ascending: false })
       .limit(10);
 
-    if (error) return `Failed to load risk updates: ${error.message}`;
-    if (!data?.length) return "No open risk updates.";
+    if (error && !isMissingRelationError(error)) return `Failed to load risk updates: ${error.message}`;
+
+    if (!data?.length) {
+      try {
+        const fallback = await listDashboardEvents({ limit: 10, risksOnly: true, openOnly: true });
+        if (!fallback.length) return "No open risk updates.";
+
+        const lines = ["Open risk updates (from dashboard events):"];
+        for (const item of fallback) {
+          lines.push(`- ${item.chapter} | ${item.status} | ${item.title}`);
+        }
+        return lines.join("\n");
+      } catch (fallbackError) {
+        const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
+        return `Failed to load risk updates: ${message}`;
+      }
+    }
 
     const lines = ["Open risk updates:"];
     for (const item of data) {
@@ -584,8 +680,23 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       .order("updated_at", { ascending: false })
       .limit(10);
 
-    if (error) return `Failed to load tasks: ${error.message}`;
-    if (!data?.length) return "No tasks yet.";
+    if (error && !isMissingRelationError(error)) return `Failed to load tasks: ${error.message}`;
+
+    if (!data?.length) {
+      try {
+        const fallback = await listDashboardEvents({ limit: 10, openOnly: true });
+        if (!fallback.length) return "No tasks yet.";
+
+        const lines = ["Latest tasks (derived from open dashboard events):"];
+        for (const item of fallback) {
+          lines.push(`- ${item.chapter} | ${item.status} | ${item.title} | due: ${item.dueDate || "n/a"}`);
+        }
+        return lines.join("\n");
+      } catch (fallbackError) {
+        const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
+        return `Failed to load tasks: ${message}`;
+      }
+    }
 
     const lines = ["Latest tasks:"];
     for (const item of data) {
