@@ -6,6 +6,7 @@ This folder contains the API for the dashboard in ../apr13-latest-sui-devcon-das
 
 The function exposes these routes:
 - GET /health
+- GET /dashboard
 - GET /metrics
 - GET /updates?limit=12
 - POST /updates
@@ -27,6 +28,7 @@ Apply migration:
 
 The migration file is:
 - supabase/migrations/20260414_create_updates_table.sql
+- supabase/migrations/20260414_add_dashboard_seed_data.sql
 
 ## 3) Deploy function
 
@@ -52,5 +54,6 @@ Set webhook after deploy:
 
 ## Notes
 
+- GET /dashboard returns dashboard summary and timeline countdowns using Asia/Manila date/time.
 - POST /updates still saves to Supabase even if Telegram fails.
 - Telegram command support: /start, /help, /latest, /risk

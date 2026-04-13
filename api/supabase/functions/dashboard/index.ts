@@ -20,6 +20,17 @@ type TelegramResult = {
   messageId?: number;
 };
 
+type DashboardEvent = {
+  slug: string;
+  chapter: string;
+  event_name: string;
+  event_date: string | null;
+  event_kind: string;
+  status: string;
+  pax_target: number | null;
+  display_order: number;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
@@ -139,6 +150,127 @@ async function notifyTelegram(update: UpdateRow): Promise<TelegramResult> {
 
 function supabaseClient() {
   return createClient(getEnv("SUPABASE_URL"), getEnv("SUPABASE_SERVICE_ROLE_KEY"));
+}
+
+function parseNumberOrDefault(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function manilaDateParts(date = new Date()): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date).split("-");
+
+  return {
+    year: Number(parts[0]),
+    month: Number(parts[1]),
+    day: Number(parts[2]),
+  };
+}
+
+function daysAwayFromManila(dateText: string | null): number | null {
+  if (!dateText) return null;
+
+  const chunks = dateText.split("-");
+  if (chunks.length !== 3) return null;
+
+  const year = Number(chunks[0]);
+  const month = Number(chunks[1]);
+  const day = Number(chunks[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return null;
+  }
+
+  const now = manilaDateParts();
+  const todayUtc = Date.UTC(now.year, now.month - 1, now.day);
+  const eventUtc = Date.UTC(year, month - 1, day);
+  return Math.round((eventUtc - todayUtc) / 86400000);
+}
+
+async function handleDashboard() {
+  const supabase = supabaseClient();
+
+  const [{ data: configRows, error: configError }, { data: eventRows, error: eventError }] = await Promise.all([
+    supabase
+      .from("dashboard_config")
+      .select("key, value_text, value_number"),
+    supabase
+      .from("dashboard_events")
+      .select("slug, chapter, event_name, event_date, event_kind, status, pax_target, display_order")
+      .order("display_order", { ascending: true }),
+  ]);
+
+  if (configError) {
+    return jsonResponse({ error: configError.message }, 500);
+  }
+
+  if (eventError) {
+    return jsonResponse({ error: eventError.message }, 500);
+  }
+
+  const config = new Map<string, { value_text: string | null; value_number: number | null }>();
+  for (const row of configRows || []) {
+    config.set(String(row.key), {
+      value_text: row.value_text,
+      value_number: row.value_number,
+    });
+  }
+
+  const events = (eventRows || []) as DashboardEvent[];
+  const codeCampEvents = events.filter((item) => item.event_kind === "code_camp");
+  const codeCampsTotal = codeCampEvents.length;
+  const codeCampsCompleted = codeCampEvents.filter((item) => {
+    const status = String(item.status || "").toLowerCase();
+    return status === "completed" || status === "done";
+  }).length;
+
+  const formSubmissions = parseNumberOrDefault(config.get("form_submissions")?.value_number, 95);
+  const trainedMentors = parseNumberOrDefault(config.get("trained_mentors")?.value_number, 35);
+  const confirmedDeployments = parseNumberOrDefault(config.get("confirmed_deployments")?.value_number, 86);
+  const completionRatePct = parseNumberOrDefault(config.get("completion_rate_pct")?.value_number, 63.7);
+  const computerLabs = parseNumberOrDefault(config.get("computer_labs")?.value_number, 3);
+
+  const deadlineText = config.get("q2_deadline")?.value_text || "2026-06-30";
+  const q2DaysRemaining = daysAwayFromManila(deadlineText);
+
+  const manilaNow = new Date();
+  const manilaDateLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(manilaNow);
+
+  return jsonResponse({
+    timezone: "Asia/Manila",
+    generatedAt: new Date().toISOString(),
+    manilaDateLabel,
+    q2DaysRemaining,
+    summary: {
+      codeCampsTotal,
+      codeCampsCompleted,
+      formSubmissions,
+      trainedMentors,
+      confirmedDeployments,
+      completionRatePct,
+      computerLabs,
+    },
+    events: events.map((item) => ({
+      slug: item.slug,
+      chapter: item.chapter,
+      eventName: item.event_name,
+      eventDate: item.event_date,
+      eventKind: item.event_kind,
+      status: item.status,
+      paxTarget: item.pax_target,
+      daysAway: daysAwayFromManila(item.event_date),
+    })),
+  });
 }
 
 async function handleMetrics() {
@@ -333,6 +465,10 @@ Deno.serve(async (request) => {
 
     if (request.method === "GET" && route === "/metrics") {
       return await handleMetrics();
+    }
+
+    if (request.method === "GET" && route === "/dashboard") {
+      return await handleDashboard();
     }
 
     if (request.method === "GET" && route === "/updates") {

@@ -230,24 +230,6 @@
   ::-webkit-scrollbar-thumb{background:rgba(77,162,255,0.3);border-radius:3px;}
   .footer-note { text-align:center; font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:48px; padding-top:20px; border-top:1px solid var(--border); line-height:2; }
 
-  /* ---- LIVE OPS ---- */
-  .live-metric { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:12px; }
-  .live-metric__num { font-size:24px; font-weight:800; font-family:'Space Mono',monospace; color:var(--sui-teal); line-height:1; }
-  .live-metric__label { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-top:5px; }
-  .live-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:14px; }
-  .live-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .live-form textarea { grid-column:1/-1; min-height:84px; }
-  .live-form .full { grid-column:1/-1; }
-  .input-dark { width:100%; padding:9px 10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Space Mono',monospace; font-size:11px; }
-  .input-dark:focus { outline:none; border-color:var(--border-bright); }
-  .btn-primary { border:none; background:linear-gradient(90deg,var(--sui-blue),var(--sui-teal)); color:var(--bg); border-radius:6px; font-weight:800; font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:10px 14px; cursor:pointer; }
-  .btn-primary:disabled { opacity:.65; cursor:not-allowed; }
-  .live-status { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; margin-top:8px; }
-  .live-feed { display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; }
-  .live-feed-item { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px; }
-  .live-feed-item__title { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
-  .live-feed-item__meta { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; line-height:1.7; }
-  @media(max-width:700px){ .live-form { grid-template-columns:1fr; } }
   @media(max-width:600px){
     .wrapper { padding:16px 14px 60px; }
     .task-row { grid-template-columns:1fr; gap:6px; }
@@ -433,51 +415,6 @@
     <button class="tab tab-chapter" onclick="showChapter('laguna')">Ch6 Laguna</button>
   </div>
 
-  <div class="card mb-20" id="live-ops-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <div class="section-title" style="margin-bottom:0;">🔄 Live Ops Sync (Supabase + Telegram)</div>
-      <div id="api-status" class="badge badge-pending">API: Checking...</div>
-    </div>
-    <div class="live-grid">
-      <div class="live-metric"><div class="live-metric__num" id="metric-total-updates">0</div><div class="live-metric__label">Total Updates</div></div>
-      <div class="live-metric"><div class="live-metric__num" id="metric-completed">0</div><div class="live-metric__label">Completed</div></div>
-      <div class="live-metric"><div class="live-metric__num" id="metric-in-progress">0</div><div class="live-metric__label">In Progress</div></div>
-      <div class="live-metric"><div class="live-metric__num" id="metric-open-risks">0</div><div class="live-metric__label">Open Risks</div></div>
-      <div class="live-metric"><div class="live-metric__num" id="metric-pax-actual">0</div><div class="live-metric__label">Pax Actual</div></div>
-    </div>
-    <div class="grid-2">
-      <div class="card mb-0">
-        <div class="section-title">Log New Update</div>
-        <form id="live-update-form" class="live-form">
-          <input class="input-dark" name="chapter" placeholder="Chapter (e.g. Iloilo)" required>
-          <input class="input-dark" name="owner" placeholder="Owner (e.g. Ted)" required>
-          <input class="input-dark" name="title" placeholder="Update title" required>
-          <select class="input-dark" name="status" required>
-            <option value="">Status</option>
-            <option>In Progress</option>
-            <option>Completed</option>
-            <option>Pending</option>
-            <option>Blocked</option>
-          </select>
-          <input class="input-dark" type="date" name="event_date">
-          <label class="input-dark" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" name="is_risk"> Mark as risk</label>
-          <input class="input-dark" type="number" name="pax_target" placeholder="Pax target">
-          <input class="input-dark" type="number" name="pax_actual" placeholder="Pax actual">
-          <textarea class="input-dark" name="notes" placeholder="Notes"></textarea>
-          <div class="full">
-            <button class="btn-primary" id="submit-update-btn" type="submit">Save to Supabase + Notify Telegram</button>
-            <div class="live-status" id="form-status">Ready.</div>
-          </div>
-        </form>
-      </div>
-      <div class="card mb-0">
-        <div class="section-title">Recent Activity Feed</div>
-        <div id="updates-feed" class="live-feed">
-          <div class="live-feed-item"><div class="live-feed-item__meta">Loading recent updates...</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- ========== DSU PANEL ========== -->
   <div id="panel-dsu" class="panel">
@@ -488,8 +425,8 @@
       <div class="dsu-inner">
         <div>
           <div class="dsu-eyebrow">📝 DEVCON Ops — Monday Morning DSU</div>
-          <div class="dsu-date">Monday, April 13, 2026</div>
-          <div class="dsu-sub">Sui Build Beyond DEVCON PH · Q2 · 78 days remaining</div>
+          <div class="dsu-date" id="manila-date-label">Monday, April 13, 2026</div>
+          <div class="dsu-sub">Sui Build Beyond DEVCON PH · Q2 · <span id="q2-days-remaining">78</span> days remaining</div>
         </div>
       </div>
     </div>
@@ -500,32 +437,32 @@
     <!-- Numbers Tile Summary — single source of truth -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
       <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.3);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
+        <div data-summary="codeCamps" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Code Camps</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Completed</div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
+        <div data-summary="formSubmissions" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Form Submissions</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Total project completions</div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
+        <div data-summary="trainedMentors" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Trained Mentors</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Nationwide deployed</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.35);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
+        <div data-summary="confirmedDeployments" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Confirmed Deployments</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">51 students + 35 mentors</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.5);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
+        <div data-summary="completionRate" style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
         <div style="font-size:10px;font-weight:700;color:var(--green);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Completion Rate</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">86 / 135 (students + mentors)</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.25);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
+        <div data-summary="computerLabs" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Computer Labs</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Activated to date</div>
       </div>
@@ -572,7 +509,7 @@
         </div>
         <div class="camp-card__date">May 6, 2026 <span class="badge badge-done" style="font-size:8px;margin-left:4px;">Sui Code Camp</span></div>
         <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%"></div></div>
-        <div class="camp-card__cd">23 days to go</div>
+        <div class="camp-card__cd" id="card-cd-bukidnon">23 days to go</div>
         <div class="camp-card__todos">
           <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> Ocular at BSU + lab install planning</span></div>
           <div class="todo-item"><span class="todo-arrow">→</span><span><b>Zhi:</b> Finalize student outreach for Sui workshop</span></div>
@@ -587,7 +524,7 @@
         <div class="camp-card__date">May 16, 2026 · Central Philippine University <span style="color:var(--text-dim);font-size:10px;">(Code Camp)</span></div>
         <div class="camp-card__date-note">+ Apr 18 Sui Developer Event (5 days away)</div>
         <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--sui-teal),#00ffcc)"></div></div>
-        <div class="camp-card__cd">33 days to go (code camp)</div>
+        <div class="camp-card__cd" id="card-cd-iloilo">33 days to go (code camp)</div>
         <div class="camp-card__todos">
           <div class="todo-item"><span class="todo-arrow">→</span><span><b>Ted:</b> CPU Jaro ocular + install planning</span></div>
           <div class="todo-item"><span class="todo-arrow">→</span><span><b>Marica:</b> WVSU lab ocular (T-30 from Apr 18)</span></div>
@@ -632,7 +569,7 @@
         <div class="camp-card__date">Jun 24, 2026 · City College of Angeles</div>
         <div class="camp-card__date-note">📌 Pencil-booked — Chapter request for Sui Move Code Camp slot</div>
         <div class="progress-bar camp-card__bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--sui-teal),#00ffcc)"></div></div>
-        <div class="camp-card__cd">72 days to go · ~10 weeks</div>
+        <div class="camp-card__cd" id="card-cd-pampanga">72 days to go · ~10 weeks</div>
         <div class="camp-card__todos">
           <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-teal);">→</span><span><b>Joash:</b> Confirm slot with Sui Foundation</span></div>
           <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-teal);">→</span><span><b>Joash:</b> Formal ocular visit to CCA by May 25 (T-30)</span></div>
@@ -722,32 +659,32 @@
     <!-- Numbers Tile Summary -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;">
       <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.3);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
+        <div data-summary="codeCamps" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">1/5</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Code Camps</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Completed</div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
+        <div data-summary="formSubmissions" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">95</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Form Submissions</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Total project completions</div>
       </div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
+        <div data-summary="trainedMentors" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">35</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Trained Mentors</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Nationwide deployed</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.35);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
+        <div data-summary="confirmedDeployments" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-teal);line-height:1;">86</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-teal);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Confirmed Deployments</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">51 students + 35 mentors</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.5);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
+        <div data-summary="completionRate" style="font-size:26px;font-weight:800;font-family:'Space Mono',monospace;color:var(--green);line-height:1;">63.7%</div>
         <div style="font-size:10px;font-weight:700;color:var(--green);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Completion Rate</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">86 / 135 (students + mentors)</div>
       </div>
       <div style="background:var(--bg2);border:1px solid rgba(77,162,255,0.25);border-radius:10px;padding:14px 12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
+        <div data-summary="computerLabs" style="font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--sui-blue);line-height:1;">3</div>
         <div style="font-size:10px;font-weight:700;color:var(--sui-blue);margin-top:5px;text-transform:uppercase;letter-spacing:.06em;">Computer Labs</div>
         <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Activated to date</div>
       </div>
@@ -1429,152 +1366,12 @@ Installation start date: [date]</pre></div>
 <script>
   // ---- expose on window so inline onclick attrs always resolve ----
   var _lastMainPanel = 'dsu';
-  var _liveRefreshTimer = null;
   var DASHBOARD_API_BASE = window.DASHBOARD_API_BASE || new URLSearchParams(window.location.search).get('apiBase') || 'http://localhost:4000/api';
 
   function _el(id) {
     return document.getElementById(id);
   }
 
-  function _escapeHtml(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function _setMetric(id, value) {
-    var target = _el(id);
-    if (target) target.textContent = value;
-  }
-
-  function _setApiStatus(text, ok) {
-    var apiStatus = _el('api-status');
-    if (!apiStatus) return;
-    apiStatus.textContent = text;
-    apiStatus.className = ok ? 'badge badge-done' : 'badge badge-risk';
-  }
-
-  function _formatDate(dateText) {
-    if (!dateText) return 'N/A';
-    var d = new Date(dateText);
-    if (Number.isNaN(d.getTime())) return dateText;
-    return d.toLocaleString();
-  }
-
-  async function fetchMetrics() {
-    var response = await fetch(DASHBOARD_API_BASE + '/metrics');
-    if (!response.ok) throw new Error('Metrics request failed');
-    return response.json();
-  }
-
-  async function fetchUpdates(limit) {
-    var response = await fetch(DASHBOARD_API_BASE + '/updates?limit=' + (limit || 12));
-    if (!response.ok) throw new Error('Updates request failed');
-    return response.json();
-  }
-
-  function renderUpdates(items) {
-    var feed = _el('updates-feed');
-    if (!feed) return;
-    if (!items || !items.length) {
-      feed.innerHTML = '<div class="live-feed-item"><div class="live-feed-item__meta">No updates yet.</div></div>';
-      return;
-    }
-
-    feed.innerHTML = items.map(function(item) {
-      return [
-        '<div class="live-feed-item">',
-        '<div class="live-feed-item__title">' + _escapeHtml(item.title) + '</div>',
-        '<div class="live-feed-item__meta">',
-        _escapeHtml(item.chapter || 'N/A') + ' · ' + _escapeHtml(item.status || 'N/A') + '<br>',
-        'Owner: ' + _escapeHtml(item.owner || 'N/A') + '<br>',
-        'Event: ' + _escapeHtml(item.event_date || 'N/A') + '<br>',
-        'Created: ' + _escapeHtml(_formatDate(item.created_at)),
-        item.notes ? '<br>Notes: ' + _escapeHtml(item.notes) : '',
-        '</div>',
-        '</div>'
-      ].join('');
-    }).join('');
-  }
-
-  async function loadLiveData() {
-    try {
-      var healthResponse = await fetch(DASHBOARD_API_BASE + '/health');
-      _setApiStatus(healthResponse.ok ? 'API: Connected' : 'API: Error', healthResponse.ok);
-
-      var metrics = await fetchMetrics();
-      _setMetric('metric-total-updates', metrics.totalUpdates || 0);
-      _setMetric('metric-completed', metrics.completed || 0);
-      _setMetric('metric-in-progress', metrics.inProgress || 0);
-      _setMetric('metric-open-risks', metrics.openRisks || 0);
-      _setMetric('metric-pax-actual', metrics.totalPaxActual || 0);
-
-      var updates = await fetchUpdates(12);
-      renderUpdates(updates.items || []);
-    } catch (error) {
-      _setApiStatus('API: Offline', false);
-      var formStatus = _el('form-status');
-      if (formStatus) formStatus.textContent = 'Could not load live data. Check backend and CORS settings.';
-    }
-  }
-
-  function initLiveOpsForm() {
-    var form = _el('live-update-form');
-    var button = _el('submit-update-btn');
-    var formStatus = _el('form-status');
-    if (!form || !button || !formStatus) return;
-
-    form.addEventListener('submit', async function(event) {
-      event.preventDefault();
-      button.disabled = true;
-      formStatus.textContent = 'Saving update...';
-
-      var fd = new FormData(form);
-      var payload = {
-        chapter: fd.get('chapter'),
-        owner: fd.get('owner'),
-        title: fd.get('title'),
-        status: fd.get('status'),
-        event_date: fd.get('event_date') || null,
-        notes: fd.get('notes') || null,
-        pax_target: fd.get('pax_target') || null,
-        pax_actual: fd.get('pax_actual') || null,
-        is_risk: fd.get('is_risk') === 'on'
-      };
-
-      try {
-        var response = await fetch(DASHBOARD_API_BASE + '/updates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        var result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to save update');
-
-        var telegramNote = result.telegram && result.telegram.error
-          ? ' Saved, but Telegram failed: ' + result.telegram.error
-          : ' Saved and Telegram notified.';
-
-        formStatus.textContent = 'Update created.' + telegramNote;
-        form.reset();
-        await loadLiveData();
-      } catch (error) {
-        formStatus.textContent = 'Error: ' + error.message;
-      } finally {
-        button.disabled = false;
-      }
-    });
-  }
-
-  function initLiveOps() {
-    initLiveOpsForm();
-    loadLiveData();
-    if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
-    _liveRefreshTimer = setInterval(loadLiveData, 30000);
-  }
 
   window.hideAllPanels = function() {
     document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
@@ -1625,28 +1422,148 @@ Installation start date: [date]</pre></div>
     if (el) el.classList.toggle('open');
   };
 
-  // ---- Countdowns ----
-  window.calcCountdowns = function() {
-    var now = new Date('2026-04-13');
-    var events = [
-      { date: '2026-04-18', ids: ['cd-iloilo-a','iloilo-a-cd'] },
-      { date: '2026-05-16', ids: ['cd-iloilo-b','iloilo-b-cd'] },
-      { date: '2026-05-06', ids: ['cd-bukidnon','bukidnon-cd'] },
-      { date: '2026-06-24', ids: ['cd-pampanga','pampanga-cd'] }
-    ];
-    events.forEach(function(ev) {
-      var d = new Date(ev.date);
-      var diff = Math.round((d - now) / (1000*60*60*24));
-      var weeks = Math.round(diff / 7);
-      var label = diff <= 0
-        ? Math.abs(diff) + ' days ago'
-        : diff + ' days' + (weeks >= 2 ? ' · ~' + weeks + ' wks' : '');
-      ev.ids.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.textContent = label;
-      });
+  function _setSummaryValue(key, value) {
+    document.querySelectorAll('[data-summary="' + key + '"]').forEach(function(node) {
+      node.textContent = value;
     });
-  };
+  }
+
+  function _setTextByIds(ids, value) {
+    ids.forEach(function(id) {
+      var node = _el(id);
+      if (node) node.textContent = value;
+    });
+  }
+
+  function _formatCountdownLabel(daysAway, withToGo) {
+    if (daysAway === null || daysAway === undefined || Number.isNaN(Number(daysAway))) {
+      return 'TBC';
+    }
+
+    var days = Number(daysAway);
+    if (days < 0) {
+      return Math.abs(days) + ' days ago';
+    }
+    if (days === 0) {
+      return 'Today';
+    }
+
+    var weeks = Math.round(days / 7);
+    var suffix = withToGo ? ' days to go' : ' days';
+    return days + suffix + (weeks >= 2 ? ' · ~' + weeks + ' wks' : '');
+  }
+
+  function _manilaDateParts(date) {
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date).split('-');
+
+    return {
+      year: Number(parts[0]),
+      month: Number(parts[1]),
+      day: Number(parts[2])
+    };
+  }
+
+  function _daysAwayFromManila(dateText) {
+    if (!dateText) return null;
+
+    var chunks = String(dateText).split('-');
+    if (chunks.length !== 3) return null;
+
+    var year = Number(chunks[0]);
+    var month = Number(chunks[1]);
+    var day = Number(chunks[2]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return null;
+    }
+
+    var nowParts = _manilaDateParts(new Date());
+    var todayUtc = Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day);
+    var eventUtc = Date.UTC(year, month - 1, day);
+    return Math.round((eventUtc - todayUtc) / 86400000);
+  }
+
+  function applyDashboardPayload(payload) {
+    if (!payload) return;
+
+    if (payload.manilaDateLabel) {
+      var manilaDate = _el('manila-date-label');
+      if (manilaDate) manilaDate.textContent = payload.manilaDateLabel;
+    }
+
+    if (payload.q2DaysRemaining !== undefined && payload.q2DaysRemaining !== null) {
+      var q2Days = _el('q2-days-remaining');
+      if (q2Days) q2Days.textContent = String(payload.q2DaysRemaining);
+    }
+
+    if (payload.summary) {
+      _setSummaryValue('codeCamps', (payload.summary.codeCampsCompleted || 0) + '/' + (payload.summary.codeCampsTotal || 0));
+      _setSummaryValue('formSubmissions', String(payload.summary.formSubmissions || 0));
+      _setSummaryValue('trainedMentors', String(payload.summary.trainedMentors || 0));
+      _setSummaryValue('confirmedDeployments', String(payload.summary.confirmedDeployments || 0));
+      _setSummaryValue('completionRate', String(payload.summary.completionRatePct || 0) + '%');
+      _setSummaryValue('computerLabs', String(payload.summary.computerLabs || 0));
+    }
+
+    var eventTargets = {
+      'iloilo-dev': ['cd-iloilo-a', 'iloilo-a-cd'],
+      'iloilo-code': ['cd-iloilo-b', 'iloilo-b-cd', 'card-cd-iloilo'],
+      'bukidnon': ['cd-bukidnon', 'bukidnon-cd', 'card-cd-bukidnon'],
+      'pampanga': ['cd-pampanga', 'pampanga-cd', 'card-cd-pampanga']
+    };
+
+    (payload.events || []).forEach(function(eventItem) {
+      var ids = eventTargets[eventItem.slug];
+      if (!ids) return;
+      var tableLabel = _formatCountdownLabel(eventItem.daysAway, false);
+      var cardLabel = _formatCountdownLabel(eventItem.daysAway, true);
+
+      _setTextByIds(ids.slice(0, 2), tableLabel);
+      if (ids[2]) _setTextByIds([ids[2]], cardLabel);
+    });
+  }
+
+  function applyFallbackCountdowns() {
+    var fallbackEvents = [
+      { slug: 'iloilo-dev', event_date: '2026-04-18' },
+      { slug: 'iloilo-code', event_date: '2026-05-16' },
+      { slug: 'bukidnon', event_date: '2026-05-06' },
+      { slug: 'pampanga', event_date: '2026-06-24' }
+    ].map(function(item) {
+      return {
+        slug: item.slug,
+        daysAway: _daysAwayFromManila(item.event_date)
+      };
+    });
+
+    var manilaLabel = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(new Date());
+
+    applyDashboardPayload({
+      manilaDateLabel: manilaLabel,
+      events: fallbackEvents
+    });
+  }
+
+  async function loadDashboardData() {
+    try {
+      var response = await fetch(DASHBOARD_API_BASE + '/dashboard');
+      if (!response.ok) throw new Error('Dashboard request failed');
+      var payload = await response.json();
+      applyDashboardPayload(payload);
+    } catch (_) {
+      applyFallbackCountdowns();
+    }
+  }
 
   // ---- Init on DOM ready ----
   function _init() {
@@ -1658,8 +1575,7 @@ Installation start date: [date]</pre></div>
     } else {
       window.showMainPanel('dsu');
     }
-    window.calcCountdowns();
-    initLiveOps();
+    loadDashboardData();
   }
 
   if (document.readyState === 'loading') {
