@@ -475,9 +475,10 @@ async function handleCreateUpdate(request: Request) {
 }
 
 async function handleTelegramWebhook(request: Request) {
-  const expectedSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+  const expectedSecret = String(Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "").trim();
   const providedSecret = request.headers.get("x-telegram-bot-api-secret-token");
 
+  // Secret verification is optional. If no secret is configured, accept webhook calls.
   if (expectedSecret && expectedSecret !== providedSecret) {
     return jsonResponse({ error: "Invalid webhook secret" }, 401);
   }

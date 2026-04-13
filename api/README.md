@@ -22,7 +22,7 @@ Copy .env.example into your Supabase Edge Functions environment:
 - SUPABASE_SERVICE_ROLE_KEY
 - TELEGRAM_BOT_TOKEN
 - TELEGRAM_CHAT_ID
-- TELEGRAM_WEBHOOK_SECRET
+- TELEGRAM_WEBHOOK_SECRET (optional, recommended for production)
 
 ## 2) Create database table
 
@@ -56,8 +56,12 @@ Or open the dashboard with a query parameter:
 Set webhook after deploy:
 - https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://YOUR_PROJECT_REF.supabase.co/functions/v1/dashboard/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>
 
+Without webhook secret (allowed for testing):
+- https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://YOUR_PROJECT_REF.supabase.co/functions/v1/dashboard/telegram/webhook
+
 ## Notes
 
 - GET /dashboard returns dashboard summary and timeline countdowns using Asia/Manila date/time.
 - POST /updates still saves to Supabase even if Telegram fails.
 - Telegram command support: /start, /help, /latest, /risk, /tasks, /task_add, /task_update
+- Webhook secret enforcement is optional. If TELEGRAM_WEBHOOK_SECRET is not set, webhook calls are accepted without secret verification.
