@@ -31,6 +31,23 @@ type DashboardEvent = {
   display_order: number;
 };
 
+type DashboardConfigRow = {
+  key: string;
+  value_text: string | null;
+  value_number: number | null;
+};
+
+type TaskRow = {
+  id: string;
+  chapter: string;
+  owner: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
 type TelegramListItem = {
   chapter: string;
   title: string;
@@ -268,6 +285,233 @@ function daysAwayFromManila(dateText: string | null): number | null {
   const todayUtc = Date.UTC(now.year, now.month - 1, now.day);
   const eventUtc = Date.UTC(year, month - 1, day);
   return Math.round((eventUtc - todayUtc) / 86400000);
+}
+
+function formatManilaLongDate(date = new Date()): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatManilaMonthDate(dateText: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(`${dateText}T00:00:00+08:00`));
+}
+
+function formatEventCountdown(dateText: string | null, status: string): string {
+  if (!dateText) {
+    const statusText = String(status || "").trim();
+    if (statusText) return escapeHtml(statusText);
+    return "Date TBC";
+  }
+
+  const days = daysAwayFromManila(dateText);
+  const dateLabel = escapeHtml(formatManilaMonthDate(dateText));
+  if (days === null) {
+    return dateLabel;
+  }
+
+  if (days < 0) {
+    return `${dateLabel} | ${Math.abs(days)} Days ago`;
+  }
+
+  const weeks = Math.max(1, Math.round(days / 7));
+  return `${dateLabel} | ${days} Days to go (~${weeks} Weeks)`;
+}
+
+function configText(
+  config: Map<string, { value_text: string | null; value_number: number | null }>,
+  keys: string[],
+  fallback: string,
+): string {
+  for (const key of keys) {
+    const value = config.get(key)?.value_text;
+    if (value && String(value).trim()) return String(value).trim();
+  }
+  return fallback;
+}
+
+function configNumber(
+  config: Map<string, { value_text: string | null; value_number: number | null }>,
+  keys: string[],
+  fallback: number,
+): number {
+  for (const key of keys) {
+    const value = config.get(key)?.value_number;
+    if (Number.isFinite(Number(value))) return Number(value);
+  }
+  return fallback;
+}
+
+async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient>): Promise<string> {
+  const [configResult, eventResult, riskResult, taskResult, updateResult] = await Promise.all([
+    supabase.from("dashboard_config").select("key, value_text, value_number"),
+    supabase
+      .from("dashboard_events")
+      .select("slug, chapter, event_name, event_date, event_kind, status, pax_target, display_order")
+      .order("display_order", { ascending: true })
+      .limit(20),
+    supabase
+      .from("updates")
+      .select("chapter, owner, title, status, event_date, notes, created_at")
+      .eq("is_risk", true)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("tasks")
+      .select("id, chapter, owner, title, status, due_date, notes, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("updates")
+      .select("status, title, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  const hardErrors = [configResult, eventResult, riskResult, taskResult, updateResult]
+    .map((result) => result.error)
+    .filter((error) => error && !isMissingRelationError(error));
+
+  if (hardErrors.length) {
+    return `Failed to load DSU data: ${hardErrors[0]?.message || "unknown error"}`;
+  }
+
+  const config = new Map<string, { value_text: string | null; value_number: number | null }>();
+  for (const row of ((configResult.data || []) as DashboardConfigRow[])) {
+    config.set(String(row.key), {
+      value_text: row.value_text,
+      value_number: row.value_number,
+    });
+  }
+
+  const events = (eventResult.data || []) as DashboardEvent[];
+  const codeCampEvents = events.filter((item) => item.event_kind === "code_camp");
+  const scheduleEvents = codeCampEvents.length ? codeCampEvents : events;
+
+  const totalCamps = scheduleEvents.length;
+  const completedCamps = scheduleEvents.filter((item) => isCompletedStatus(String(item.status || ""))).length;
+
+  const updates = (updateResult.data || []) as Array<{ status: string; title: string; created_at: string }>;
+  const completedProjects = updates.filter((item) => isCompletedStatus(String(item.status || ""))).length;
+
+  const projectCompletion = configNumber(
+    config,
+    ["projects_completed", "project_completion_count", "confirmed_deployments"],
+    completedProjects,
+  );
+  const trainedMentors = configNumber(config, ["trained_mentors"], 0);
+  const q2Deadline = configText(config, ["q2_deadline"], "");
+  const q2DaysRemaining = daysAwayFromManila(q2Deadline || null);
+  const projectName = configText(config, ["project_name", "project_title"], "N/A");
+
+  const technicalDefault = updates[0]
+    ? `${updates[0].title} (${updates[0].status})`
+    : "No technical status available";
+  const technicalText = configText(config, ["technical_update", "technical_status"], technicalDefault);
+
+  const lines: string[] = [
+    "MONDAY MORNING DSU",
+    formatManilaLongDate(),
+    "",
+    "📊 KPI & OVERVIEW",
+    `Camps: ${completedCamps}/${totalCamps} Completed`,
+    `Project Completion Tracker: ${projectCompletion} Projects Completed`,
+    `Technical: ${escapeHtml(technicalText)}`,
+    `Mentors: ${trainedMentors} Total Trained and Deployed`,
+    `Timeline: ${q2DaysRemaining === null ? "TBC" : q2DaysRemaining} days remaining in Q2`,
+    `Project: ${escapeHtml(projectName)}`,
+    "",
+    "📅 CAMP SCHEDULE & COUNTDOWN",
+  ];
+
+  if (!scheduleEvents.length) {
+    lines.push("No camp schedule data found in Supabase.");
+  } else {
+    for (const item of scheduleEvents.slice(0, 8)) {
+      const venue = configText(config, [`event_${item.slug}_venue`, `${item.slug}_venue`], "TBC");
+      const lead = configText(config, [`event_${item.slug}_lead`, `${item.slug}_lead`], "TBC");
+      lines.push("");
+      lines.push(`${escapeHtml(item.chapter)} (Venue: ${escapeHtml(venue)})`);
+      lines.push(formatEventCountdown(item.event_date, item.status));
+      lines.push(`Lead: ${escapeHtml(lead)}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("⚠️ HIGH RISKS & BLOCKERS");
+
+  const riskRows = (riskResult.data || []) as Array<{
+    chapter: string;
+    owner: string;
+    title: string;
+    status: string;
+    notes: string | null;
+    event_date: string | null;
+    created_at: string;
+  }>;
+
+  if (riskRows.length) {
+    for (const risk of riskRows) {
+      const base = `${escapeHtml(risk.chapter)}: ${escapeHtml(risk.title)} (${escapeHtml(risk.status)})`;
+      const detail = risk.notes ? ` ${escapeHtml(risk.notes)}` : "";
+      lines.push(`${base}.${detail}`.trim());
+    }
+  } else {
+    const fallbackRisks = scheduleEvents
+      .filter((item) => isLikelyRiskStatus(String(item.status || "")) && !isCompletedStatus(String(item.status || "")))
+      .slice(0, 5);
+
+    if (fallbackRisks.length) {
+      for (const item of fallbackRisks) {
+        lines.push(`${escapeHtml(item.chapter)}: ${escapeHtml(item.event_name)} (${escapeHtml(item.status)}).`);
+      }
+    } else {
+      lines.push("No high risks recorded in Supabase.");
+    }
+  }
+
+  lines.push("");
+  lines.push("✅ TO-DO LIST PER CAMP");
+
+  const taskRows = (taskResult.data || []) as TaskRow[];
+  const openTasks = taskRows.filter((item) => {
+    const status = normalizeStatus(String(item.status || ""));
+    return status !== "done" && status !== "completed" && status !== "closed";
+  });
+
+  if (!openTasks.length) {
+    lines.push("No open tasks found in Supabase.");
+  } else {
+    const tasksByChapter = new Map<string, TaskRow[]>();
+    for (const task of openTasks.slice(0, 24)) {
+      const chapter = String(task.chapter || "GENERAL / BACKLOG").trim() || "GENERAL / BACKLOG";
+      const bucket = tasksByChapter.get(chapter) || [];
+      bucket.push(task);
+      tasksByChapter.set(chapter, bucket);
+    }
+
+    for (const [chapter, chapterTasks] of tasksByChapter.entries()) {
+      lines.push("");
+      lines.push(`📍 ${escapeHtml(chapter.toUpperCase())}`);
+      lines.push("");
+      for (const task of chapterTasks.slice(0, 6)) {
+        const due = task.due_date ? ` (due: ${escapeHtml(task.due_date)})` : "";
+        const notes = task.notes ? ` - ${escapeHtml(task.notes)}` : "";
+        lines.push(`${escapeHtml(task.owner || "Owner")}: ${escapeHtml(task.title)}${due}${notes}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
 }
 
 async function handleDashboard() {
@@ -580,7 +824,8 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
   if (normalized === "/start" || normalized === "/help") {
     return [
       "Available commands:",
-      "/latest - show the latest updates",
+      "/latest - show Monday Morning DSU format",
+      "/dsu - show Monday Morning DSU format",
       "/risk - show open risk updates",
       "/risks - alias for /risk",
       "/tasks - show latest tasks",
@@ -609,35 +854,11 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
   }
 
   if (normalized === "/latest") {
-    const { data, error } = await supabase
-      .from("updates")
-      .select("chapter, title, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
+    return buildDsuMessage(supabase);
+  }
 
-    if (error && !isMissingRelationError(error)) return `Failed to load updates: ${error.message}`;
-
-    if (!data?.length) {
-      try {
-        const fallback = await listDashboardEvents({ limit: 5 });
-        if (!fallback.length) return "No updates yet.";
-
-        const lines = ["Latest updates (from dashboard events):"];
-        for (const item of fallback) {
-          lines.push(`- ${item.chapter} | ${item.status} | ${item.title}`);
-        }
-        return lines.join("\n");
-      } catch (fallbackError) {
-        const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
-        return `Failed to load updates: ${message}`;
-      }
-    }
-
-    const lines = ["Latest updates:"];
-    for (const item of data) {
-      lines.push(`- ${item.chapter} | ${item.status} | ${item.title}`);
-    }
-    return lines.join("\n");
+  if (normalized === "/dsu") {
+    return buildDsuMessage(supabase);
   }
 
   if (normalized === "/risk" || normalized === "/risks") {
