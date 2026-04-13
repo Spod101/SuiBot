@@ -163,6 +163,14 @@ function parseNumberOrDefault(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function isMissingRelationError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { code?: string; message?: string };
+  if (maybe.code === "42P01") return true;
+  const message = String(maybe.message || "").toLowerCase();
+  return message.includes("does not exist") || message.includes("relation") && message.includes("not found");
+}
+
 function manilaDateParts(date = new Date()): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila",
@@ -200,7 +208,7 @@ function daysAwayFromManila(dateText: string | null): number | null {
 async function handleDashboard() {
   const supabase = supabaseClient();
 
-  const [{ data: configRows, error: configError }, { data: eventRows, error: eventError }] = await Promise.all([
+  const [{ data: rawConfigRows, error: configError }, { data: rawEventRows, error: eventError }] = await Promise.all([
     supabase
       .from("dashboard_config")
       .select("key, value_text, value_number"),
@@ -210,13 +218,16 @@ async function handleDashboard() {
       .order("display_order", { ascending: true }),
   ]);
 
-  if (configError) {
+  if (configError && !isMissingRelationError(configError)) {
     return jsonResponse({ error: configError.message }, 500);
   }
 
-  if (eventError) {
+  if (eventError && !isMissingRelationError(eventError)) {
     return jsonResponse({ error: eventError.message }, 500);
   }
+
+  const configRows = rawConfigRows || [];
+  const eventRows = rawEventRows || [];
 
   const config = new Map<string, { value_text: string | null; value_number: number | null }>();
   for (const row of configRows || []) {
