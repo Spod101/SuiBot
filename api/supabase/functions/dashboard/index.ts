@@ -34,7 +34,7 @@ type DashboardEvent = {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
 };
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -82,6 +82,12 @@ function normalizeRoute(pathname: string): string {
     return `/${nested.join("/")}`.replace(/\/$/, "") || "/";
   }
   return pathname.replace(/\/$/, "") || "/";
+}
+
+function routeId(route: string, prefix: string): string | null {
+  if (!route.startsWith(prefix + "/")) return null;
+  const id = route.slice(prefix.length + 1).trim();
+  return id || null;
 }
 
 async function sendTelegramMessage(chatId: string, text: string): Promise<TelegramResult> {
@@ -228,13 +234,13 @@ async function handleDashboard() {
     return status === "completed" || status === "done";
   }).length;
 
-  const formSubmissions = parseNumberOrDefault(config.get("form_submissions")?.value_number, 95);
-  const trainedMentors = parseNumberOrDefault(config.get("trained_mentors")?.value_number, 35);
-  const confirmedDeployments = parseNumberOrDefault(config.get("confirmed_deployments")?.value_number, 86);
-  const completionRatePct = parseNumberOrDefault(config.get("completion_rate_pct")?.value_number, 63.7);
-  const computerLabs = parseNumberOrDefault(config.get("computer_labs")?.value_number, 3);
+  const formSubmissions = parseNumberOrDefault(config.get("form_submissions")?.value_number, 0);
+  const trainedMentors = parseNumberOrDefault(config.get("trained_mentors")?.value_number, 0);
+  const confirmedDeployments = parseNumberOrDefault(config.get("confirmed_deployments")?.value_number, 0);
+  const completionRatePct = parseNumberOrDefault(config.get("completion_rate_pct")?.value_number, 0);
+  const computerLabs = parseNumberOrDefault(config.get("computer_labs")?.value_number, 0);
 
-  const deadlineText = config.get("q2_deadline")?.value_text || "2026-06-30";
+  const deadlineText = config.get("q2_deadline")?.value_text || null;
   const q2DaysRemaining = daysAwayFromManila(deadlineText);
 
   const manilaNow = new Date();
@@ -271,6 +277,102 @@ async function handleDashboard() {
       daysAway: daysAwayFromManila(item.event_date),
     })),
   });
+}
+
+async function handleListTasks(request: Request) {
+  const supabase = supabaseClient();
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status");
+  const requestedLimit = Number(url.searchParams.get("limit") || "25");
+  const limit = Math.max(1, Math.min(100, Number.isFinite(requestedLimit) ? requestedLimit : 25));
+
+  let query = supabase
+    .from("tasks")
+    .select("id, chapter, owner, title, status, due_date, notes, created_at, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    return jsonResponse({ error: error.message }, 500);
+  }
+
+  return jsonResponse({ items: data || [] });
+}
+
+async function handleCreateTask(request: Request) {
+  const payload = await request.json().catch(() => null);
+  if (!payload) {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const chapter = String(payload.chapter || "").trim();
+  const owner = String(payload.owner || "").trim();
+  const title = String(payload.title || "").trim();
+  const status = String(payload.status || "open").trim().toLowerCase();
+
+  if (!chapter || !owner || !title) {
+    return jsonResponse({ error: "chapter, owner, and title are required" }, 400);
+  }
+
+  const row = {
+    chapter,
+    owner,
+    title,
+    status: status || "open",
+    due_date: payload.due_date ? String(payload.due_date) : null,
+    notes: payload.notes ? String(payload.notes) : null,
+  };
+
+  const supabase = supabaseClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert(row)
+    .select("id, chapter, owner, title, status, due_date, notes, created_at, updated_at")
+    .single();
+
+  if (error || !data) {
+    return jsonResponse({ error: error?.message || "Failed to create task" }, 500);
+  }
+
+  return jsonResponse({ item: data }, 201);
+}
+
+async function handleUpdateTask(request: Request, taskId: string) {
+  const payload = await request.json().catch(() => null);
+  if (!payload) {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const patch: Record<string, unknown> = {};
+  const stringFields = ["chapter", "owner", "title", "status", "notes", "due_date"];
+  for (const field of stringFields) {
+    if (payload[field] !== undefined) {
+      patch[field] = payload[field] === null ? null : String(payload[field]).trim();
+    }
+  }
+
+  if (!Object.keys(patch).length) {
+    return jsonResponse({ error: "No fields to update" }, 400);
+  }
+
+  const supabase = supabaseClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(patch)
+    .eq("id", taskId)
+    .select("id, chapter, owner, title, status, due_date, notes, created_at, updated_at")
+    .single();
+
+  if (error || !data) {
+    return jsonResponse({ error: error?.message || "Failed to update task" }, 500);
+  }
+
+  return jsonResponse({ item: data });
 }
 
 async function handleMetrics() {
@@ -400,18 +502,38 @@ async function handleTelegramWebhook(request: Request) {
 }
 
 async function handleTelegramCommand(commandText: string): Promise<string> {
-  const normalized = commandText.split(" ")[0].toLowerCase();
+  const [command, ...tail] = commandText.split(" ");
+  const normalized = command.toLowerCase();
 
   if (normalized === "/start" || normalized === "/help") {
     return [
       "Available commands:",
       "/latest - show the latest updates",
       "/risk - show open risk updates",
+      "/tasks - show latest tasks",
+      "/task_add chapter | owner | title | due_date | notes",
+      "/task_update task_id | status | notes",
       "/help - show this help",
     ].join("\n");
   }
 
   const supabase = supabaseClient();
+
+  async function resolveTaskId(taskRef: string): Promise<string | null> {
+    const cleaned = taskRef.trim();
+    if (!cleaned) return null;
+    if (cleaned.length >= 32) return cleaned;
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id")
+      .ilike("id", `${cleaned}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data?.id) return null;
+    return String(data.id);
+  }
 
   if (normalized === "/latest") {
     const { data, error } = await supabase
@@ -448,6 +570,81 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
     return lines.join("\n");
   }
 
+  if (normalized === "/tasks") {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id, chapter, owner, title, status, due_date")
+      .order("updated_at", { ascending: false })
+      .limit(10);
+
+    if (error) return `Failed to load tasks: ${error.message}`;
+    if (!data?.length) return "No tasks yet.";
+
+    const lines = ["Latest tasks:"];
+    for (const item of data) {
+      lines.push(`- ${String(item.id).slice(0, 8)} | ${item.chapter} | ${item.status} | ${item.title} | due: ${item.due_date || "n/a"}`);
+    }
+    return lines.join("\n");
+  }
+
+  if (normalized === "/task_add") {
+    const raw = tail.join(" ");
+    const parts = raw.split("|").map((s) => s.trim());
+    if (parts.length < 3) {
+      return "Usage: /task_add chapter | owner | title | due_date(optional) | notes(optional)";
+    }
+
+    const [chapter, owner, title, dueDate, notes] = parts;
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
+        chapter,
+        owner,
+        title,
+        status: "open",
+        due_date: dueDate || null,
+        notes: notes || null,
+      })
+      .select("id, chapter, owner, title, status, due_date")
+      .single();
+
+    if (error || !data) {
+      return `Failed to add task: ${error?.message || "unknown error"}`;
+    }
+
+    return `Task created: ${String(data.id).slice(0, 8)} | ${data.chapter} | ${data.status} | ${data.title}`;
+  }
+
+  if (normalized === "/task_update") {
+    const raw = tail.join(" ");
+    const parts = raw.split("|").map((s) => s.trim());
+    if (parts.length < 2) {
+      return "Usage: /task_update task_id | status | notes(optional)";
+    }
+
+    const [taskRef, status, notes] = parts;
+    const taskId = await resolveTaskId(taskRef);
+    if (!taskId) {
+      return `Task not found for reference: ${taskRef}`;
+    }
+
+    const patch: { status: string; notes?: string } = { status };
+    if (notes) patch.notes = notes;
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .update(patch)
+      .eq("id", taskId)
+      .select("id, chapter, title, status")
+      .single();
+
+    if (error || !data) {
+      return `Failed to update task: ${error?.message || "unknown error"}`;
+    }
+
+    return `Task updated: ${String(data.id).slice(0, 8)} | ${data.status} | ${data.chapter} | ${data.title}`;
+  }
+
   return "Unknown command. Try /help.";
 }
 
@@ -477,6 +674,18 @@ Deno.serve(async (request) => {
 
     if (request.method === "POST" && route === "/updates") {
       return await handleCreateUpdate(request);
+    }
+
+    if (request.method === "GET" && route === "/tasks") {
+      return await handleListTasks(request);
+    }
+
+    if (request.method === "POST" && route === "/tasks") {
+      return await handleCreateTask(request);
+    }
+
+    if (request.method === "PATCH" && routeId(route, "/tasks")) {
+      return await handleUpdateTask(request, routeId(route, "/tasks") as string);
     }
 
     if (request.method === "POST" && route === "/telegram/webhook") {

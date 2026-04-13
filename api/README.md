@@ -10,6 +10,9 @@ The function exposes these routes:
 - GET /metrics
 - GET /updates?limit=12
 - POST /updates
+- GET /tasks?status=open&limit=25
+- POST /tasks
+- PATCH /tasks/:id
 - POST /telegram/webhook
 
 ## 1) Configure environment variables
@@ -29,6 +32,7 @@ Apply migration:
 The migration file is:
 - supabase/migrations/20260414_create_updates_table.sql
 - supabase/migrations/20260414_add_dashboard_seed_data.sql
+- supabase/migrations/20260414_create_tasks_table.sql
 
 ## 3) Deploy function
 
@@ -56,4 +60,4 @@ Set webhook after deploy:
 
 - GET /dashboard returns dashboard summary and timeline countdowns using Asia/Manila date/time.
 - POST /updates still saves to Supabase even if Telegram fails.
-- Telegram command support: /start, /help, /latest, /risk
+- Telegram command support: /start, /help, /latest, /risk, /tasks, /task_add, /task_update
