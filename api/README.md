@@ -29,10 +29,11 @@ Copy .env.example into your Supabase Edge Functions environment:
 Apply migration:
 - supabase db push
 
-The migration file is:
+The migration files are:
 - supabase/migrations/20260414_create_updates_table.sql
-- supabase/migrations/20260414_add_dashboard_seed_data.sql
-- supabase/migrations/20260414_create_tasks_table.sql
+- supabase/migrations/202604140001_create_dashboard_tables.sql
+- supabase/migrations/202604140002_add_dashboard_seed_data.sql
+- supabase/migrations/202604140003_create_tasks_table.sql
 
 ## 3) Deploy function
 

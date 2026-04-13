@@ -1366,7 +1366,8 @@ Installation start date: [date]</pre></div>
 <script>
   // ---- expose on window so inline onclick attrs always resolve ----
   var _lastMainPanel = 'dsu';
-  var DASHBOARD_API_BASE = window.DASHBOARD_API_BASE || new URLSearchParams(window.location.search).get('apiBase') || 'http://localhost:4000/api';
+  var DEFAULT_DASHBOARD_API_BASE = 'https://sluohvqpwqlyxzvunlnr.supabase.co/functions/v1/dashboard';
+  var DASHBOARD_API_BASE = window.DASHBOARD_API_BASE || new URLSearchParams(window.location.search).get('apiBase') || DEFAULT_DASHBOARD_API_BASE;
 
   function _el(id) {
     return document.getElementById(id);
