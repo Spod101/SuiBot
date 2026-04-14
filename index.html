@@ -1492,6 +1492,15 @@ Installation start date: [date]</pre></div>
     _setTextByIds(['header-live-date', 'footer-last-updated'], fullDate);
     _setTextByIds(['q2-report-deadline', 'footer-report-deadline'], reportDeadline);
 
+    var dsuDate = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'Asia/Manila'
+    }).format(now);
+    _setTextByIds(['manila-date-label'], dsuDate);
+
     var dsuTabLabel = _el('dsu-tab-label');
     if (dsuTabLabel) dsuTabLabel.textContent = '📝 DSU ' + shortDate;
   }
@@ -1555,9 +1564,6 @@ Installation start date: [date]</pre></div>
   }
 
   function applyDashboardUnavailableState() {
-    var manilaDate = _el('manila-date-label');
-    if (manilaDate) manilaDate.textContent = 'Unable to load Manila date';
-
     var q2Days = _el('q2-days-remaining');
     if (q2Days) q2Days.textContent = '--';
   }
