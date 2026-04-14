@@ -58,7 +58,7 @@ type TelegramListItem = {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
 };
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -695,6 +695,26 @@ async function handleUpdateTask(request: Request, taskId: string) {
   return jsonResponse({ item: data });
 }
 
+async function handleDeleteTask(taskId: string) {
+  const supabase = supabaseClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", taskId)
+    .select("id, chapter, owner, title, status, due_date, notes, created_at, updated_at")
+    .maybeSingle();
+
+  if (error) {
+    return jsonResponse({ error: error.message }, 500);
+  }
+
+  if (!data) {
+    return jsonResponse({ error: "Task not found" }, 404);
+  }
+
+  return jsonResponse({ deleted: true, item: data });
+}
+
 async function handleMetrics() {
   const supabase = supabaseClient();
   const { data, error } = await supabase
@@ -864,6 +884,7 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "/tasks - Show latest tasks",
       "/task_add - Add a task (supports freeform)",
       "/task_update - Update a task (supports freeform)",
+      "/task_delete - Delete a task by ID (supports ID prefix)",
       "/help - Show this help message",
       "",
       "You can send task commands in either format:",
@@ -873,6 +894,10 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "Update examples:",
       "- Positional: /task_update 3f9b2c1a | in progress | Permit follow-up done",
       "- Freeform: /task_update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+      "",
+      "Delete examples:",
+      "- /task_delete 3f9b2c1a",
+      "- /task_delete id: 3f9b2c1a",
     ]);
   }
 
@@ -1034,13 +1059,18 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
     const taskRef = (keyValues.id || keyValues.task_id || keyValues.task || parts[0] || "").trim();
     const status = (keyValues.status || keyValues.state || parts[1] || "").trim();
     const notes = (keyValues.notes || keyValues.note || parts[2] || "").trim();
+    const chapter = (keyValues.chapter || keyValues.group || "").trim();
+    const owner = (keyValues.owner || keyValues.lead || keyValues.assignee || "").trim();
+    const title = (keyValues.title || keyValues.task_title || keyValues.task || "").trim();
+    const dueDate = (keyValues.due || keyValues.due_date || keyValues.deadline || "").trim();
 
-    if (!taskRef || !status) {
+    if (!taskRef) {
       return [
         "I could not parse that update clearly.",
         "Try either:",
         "- /task_update task_id | status | notes(optional)",
         "- /task_update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+        "- /task_update id: 3f9b2c1a; title: Confirm venue; owner: Ana; due: 2026-04-20",
       ].join("\n");
     }
 
@@ -1049,14 +1079,29 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       return `Task not found for reference: ${taskRef}`;
     }
 
-    const patch: { status: string; notes?: string } = { status };
+    const patch: Record<string, string | null> = {};
+    if (status) patch.status = status;
     if (notes) patch.notes = notes;
+    if (chapter) patch.chapter = chapter;
+    if (owner) patch.owner = owner;
+    if (title) patch.title = title;
+
+    if (dueDate) {
+      const normalizedDueDate = dueDate.toLowerCase();
+      patch.due_date = (normalizedDueDate === "none" || normalizedDueDate === "null" || normalizedDueDate === "clear")
+        ? null
+        : dueDate;
+    }
+
+    if (!Object.keys(patch).length) {
+      return "No fields detected to update. Provide status, notes, title, owner, chapter, or due.";
+    }
 
     const { data, error } = await supabase
       .from("tasks")
       .update(patch)
       .eq("id", taskId)
-      .select("id, chapter, title, status")
+      .select("id, chapter, owner, title, status, due_date")
       .single();
 
     if (error || !data) {
@@ -1066,6 +1111,46 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
     return formatSection("Task Updated", [
       `Done. I updated task ${String(data.id).slice(0, 8)}.`,
       `Status: ${data.status}`,
+      `Chapter: ${data.chapter}`,
+      `Owner: ${data.owner}`,
+      `Title: ${data.title}`,
+      `Due: ${data.due_date || "n/a"}`,
+    ]);
+  }
+
+  if (normalized === "/task_delete" || normalized === "/task_remove") {
+    const raw = tail.join(" ");
+    const keyValues = parseKeyValueParts(raw);
+    const parts = splitCommandParts(raw);
+
+    const taskRef = (keyValues.id || keyValues.task_id || keyValues.task || parts[0] || "").trim();
+    if (!taskRef) {
+      return [
+        "I could not parse the task ID.",
+        "Try:",
+        "- /task_delete 3f9b2c1a",
+        "- /task_delete id: 3f9b2c1a",
+      ].join("\n");
+    }
+
+    const taskId = await resolveTaskId(taskRef);
+    if (!taskId) {
+      return `Task not found for reference: ${taskRef}`;
+    }
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId)
+      .select("id, chapter, title")
+      .single();
+
+    if (error || !data) {
+      return `Failed to delete task: ${error?.message || "unknown error"}`;
+    }
+
+    return formatSection("Task Deleted", [
+      `Done. I deleted task ${String(data.id).slice(0, 8)}.`,
       `Chapter: ${data.chapter}`,
       `Title: ${data.title}`,
     ]);
@@ -1115,6 +1200,10 @@ Deno.serve(async (request) => {
 
     if (request.method === "PATCH" && routeId(route, "/tasks")) {
       return await handleUpdateTask(request, routeId(route, "/tasks") as string);
+    }
+
+    if (request.method === "DELETE" && routeId(route, "/tasks")) {
+      return await handleDeleteTask(routeId(route, "/tasks") as string);
     }
 
     if (request.method === "POST" && route === "/telegram/webhook") {

@@ -13,6 +13,7 @@ The function exposes these routes:
 - GET /tasks?status=open&limit=25
 - POST /tasks
 - PATCH /tasks/:id
+- DELETE /tasks/:id
 - POST /telegram/webhook
 
 ## 1) Configure environment variables
@@ -64,5 +65,5 @@ Without webhook secret (allowed for testing):
 
 - GET /dashboard returns dashboard summary and timeline countdowns using Asia/Manila date/time.
 - POST /updates still saves to Supabase even if Telegram fails.
-- Telegram command support: /start, /help, /latest, /risk, /tasks, /task_add, /task_update
+- Telegram command support: /start, /help, /latest, /risk, /tasks, /task_add, /task_update, /task_delete
 - Webhook secret enforcement is optional. If TELEGRAM_WEBHOOK_SECRET is not set, webhook calls are accepted without secret verification.

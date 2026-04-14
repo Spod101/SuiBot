@@ -135,6 +135,29 @@
   .task-row:last-child { border-bottom:none; }
   .task-owner { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; }
   .task-deadline { font-size:10px; color:var(--text-dim); font-family:'Space Mono',monospace; white-space:nowrap; }
+  .task-live-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:10px; }
+  .task-live-form textarea { min-height:80px; resize:vertical; }
+  .task-live-form textarea,
+  .task-live-form input,
+  .task-live-form select { width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:9px 10px; font-family:'Space Mono',monospace; font-size:11px; }
+  .task-live-form textarea:focus,
+  .task-live-form input:focus,
+  .task-live-form select:focus { outline:none; border-color:var(--border-bright); }
+  .task-live-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger { border:1px solid transparent; border-radius:6px; padding:7px 10px; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; cursor:pointer; text-transform:uppercase; letter-spacing:.04em; }
+  .btn-primary { background:rgba(0,212,170,0.13); border-color:rgba(0,212,170,0.35); color:var(--sui-teal); }
+  .btn-ghost { background:rgba(77,162,255,0.1); border-color:rgba(77,162,255,0.3); color:var(--sui-blue); }
+  .btn-danger { background:rgba(255,77,106,0.1); border-color:rgba(255,77,106,0.32); color:var(--red); }
+  .task-live-list { display:flex; flex-direction:column; gap:9px; }
+  .task-live-item { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:11px; }
+  .task-live-item-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:7px; }
+  .task-live-item-id { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); }
+  .task-live-meta { display:flex; flex-wrap:wrap; gap:8px; font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:5px; }
+  .task-live-msg { font-size:11px; color:var(--text-dim); min-height:16px; }
+  .task-live-msg.error { color:var(--red); }
+  .task-live-msg.ok { color:var(--green); }
 
   /* ---- RISKS ---- */
   .risk-row { display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:start; padding:13px; border-radius:8px; background:var(--bg3); margin-bottom:7px; border:1px solid var(--border); transition:border-color .2s; }
@@ -635,6 +658,33 @@
       <div class="card">
         <div class="todo-camp-label" style="color:var(--text-dim);">📍 General / Backlog</div>
         <div class="todo-item"><span class="todo-arrow" style="color:var(--sui-blue);">→</span><span><b>Dom:</b> <span style="color:var(--text-dim);">Draft Q2 narrative report outline for Sui Foundation</span></span></div>
+      </div>
+    </div>
+
+    <div class="section-title">🛠 Task Manager (Live)</div>
+    <div class="card mb-20">
+      <div class="info-box" style="margin-bottom:12px;"><strong>Live Task CRUD</strong> — Add, update, and remove tasks here. This writes directly to the same API used by Telegram commands.</div>
+      <form id="task-live-form" class="task-live-form">
+        <input id="task-chapter" type="text" placeholder="Chapter (e.g. Iloilo)" required>
+        <input id="task-owner" type="text" placeholder="Owner (e.g. Ana)" required>
+        <input id="task-title" type="text" placeholder="Task title" required>
+        <select id="task-status">
+          <option value="open">open</option>
+          <option value="in progress">in progress</option>
+          <option value="blocked">blocked</option>
+          <option value="done">done</option>
+        </select>
+        <input id="task-due-date" type="date">
+        <textarea id="task-notes" placeholder="Notes (optional)"></textarea>
+        <div class="task-live-actions">
+          <button class="btn-primary" type="submit">Add Task</button>
+          <button class="btn-ghost" type="button" onclick="window.loadTasks()">Refresh</button>
+        </div>
+      </form>
+      <div id="task-live-msg" class="task-live-msg"></div>
+      <div class="divider"></div>
+      <div id="task-live-list" class="task-live-list">
+        <div class="td-dim">Loading tasks...</div>
       </div>
     </div>
 
@@ -1568,6 +1618,188 @@ Installation start date: [date]</pre></div>
     if (q2Days) q2Days.textContent = '--';
   }
 
+  var _taskCache = [];
+
+  function _escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function _setTaskMessage(text, type) {
+    var msg = _el('task-live-msg');
+    if (!msg) return;
+    msg.classList.remove('error', 'ok');
+    if (type) msg.classList.add(type);
+    msg.textContent = text || '';
+  }
+
+  function _renderTaskList(items) {
+    var list = _el('task-live-list');
+    if (!list) return;
+
+    if (!items || !items.length) {
+      list.innerHTML = '<div class="td-dim">No tasks yet.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map(function(item) {
+      var id = String(item.id || '');
+      var shortId = _escapeHtml(id.slice(0, 8));
+      var due = item.due_date ? _escapeHtml(item.due_date) : 'n/a';
+      var notes = item.notes ? '<div style="font-size:11px;color:var(--text-dim);margin-top:7px;">' + _escapeHtml(item.notes) + '</div>' : '';
+      return '' +
+        '<div class="task-live-item">' +
+          '<div class="task-live-item-head">' +
+            '<div>' +
+              '<div style="font-size:12px;font-weight:700;color:var(--text);">' + _escapeHtml(item.title || '') + '</div>' +
+              '<div class="task-live-item-id">ID: ' + shortId + '</div>' +
+            '</div>' +
+            '<div class="task-live-actions">' +
+              '<button class="btn-ghost" type="button" onclick="window.editTask(\'' + _escapeHtml(id) + '\')">Edit</button>' +
+              '<button class="btn-danger" type="button" onclick="window.deleteTask(\'' + _escapeHtml(id) + '\')">Delete</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="task-live-meta">' +
+            '<span>Chapter: ' + _escapeHtml(item.chapter || 'n/a') + '</span>' +
+            '<span>Owner: ' + _escapeHtml(item.owner || 'n/a') + '</span>' +
+            '<span>Status: ' + _escapeHtml(item.status || 'n/a') + '</span>' +
+            '<span>Due: ' + due + '</span>' +
+          '</div>' +
+          notes +
+        '</div>';
+    }).join('');
+  }
+
+  window.loadTasks = async function() {
+    try {
+      var response = await fetch(DASHBOARD_API_BASE + '/tasks?limit=50');
+      if (!response.ok) throw new Error('Request failed');
+      var payload = await response.json();
+      _taskCache = payload.items || [];
+      _renderTaskList(_taskCache);
+      _setTaskMessage('');
+    } catch (_) {
+      _renderTaskList([]);
+      _setTaskMessage('Failed to load tasks. Check API base or Supabase function status.', 'error');
+    }
+  };
+
+  window.editTask = async function(taskId) {
+    var task = (_taskCache || []).find(function(item) { return item.id === taskId; });
+    if (!task) {
+      _setTaskMessage('Task not found in local cache. Refresh and try again.', 'error');
+      return;
+    }
+
+    var nextStatus = window.prompt('Update status', task.status || 'open');
+    if (nextStatus === null) return;
+    var nextTitle = window.prompt('Update title', task.title || '');
+    if (nextTitle === null) return;
+    var nextOwner = window.prompt('Update owner', task.owner || '');
+    if (nextOwner === null) return;
+    var nextChapter = window.prompt('Update chapter', task.chapter || '');
+    if (nextChapter === null) return;
+    var nextDue = window.prompt('Update due date (YYYY-MM-DD, blank to clear)', task.due_date || '');
+    if (nextDue === null) return;
+    var nextNotes = window.prompt('Update notes (blank to clear)', task.notes || '');
+    if (nextNotes === null) return;
+
+    var patch = {
+      status: String(nextStatus || '').trim() || 'open',
+      title: String(nextTitle || '').trim(),
+      owner: String(nextOwner || '').trim(),
+      chapter: String(nextChapter || '').trim(),
+      due_date: String(nextDue || '').trim() || null,
+      notes: String(nextNotes || '').trim() || null
+    };
+
+    if (!patch.title || !patch.owner || !patch.chapter) {
+      _setTaskMessage('Chapter, owner, and title cannot be empty.', 'error');
+      return;
+    }
+
+    try {
+      var response = await fetch(DASHBOARD_API_BASE + '/tasks/' + encodeURIComponent(taskId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      });
+
+      if (!response.ok) throw new Error('Update failed');
+      _setTaskMessage('Task updated.', 'ok');
+      await window.loadTasks();
+    } catch (_) {
+      _setTaskMessage('Failed to update task.', 'error');
+    }
+  };
+
+  window.deleteTask = async function(taskId) {
+    if (!window.confirm('Delete this task permanently?')) return;
+
+    try {
+      var response = await fetch(DASHBOARD_API_BASE + '/tasks/' + encodeURIComponent(taskId), {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Delete failed');
+      _setTaskMessage('Task deleted.', 'ok');
+      await window.loadTasks();
+    } catch (_) {
+      _setTaskMessage('Failed to delete task.', 'error');
+    }
+  };
+
+  function _wireTaskForm() {
+    var form = _el('task-live-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      var chapter = (_el('task-chapter') || {}).value || '';
+      var owner = (_el('task-owner') || {}).value || '';
+      var title = (_el('task-title') || {}).value || '';
+      var status = (_el('task-status') || {}).value || 'open';
+      var dueDate = (_el('task-due-date') || {}).value || '';
+      var notes = (_el('task-notes') || {}).value || '';
+
+      var payload = {
+        chapter: String(chapter).trim(),
+        owner: String(owner).trim(),
+        title: String(title).trim(),
+        status: String(status).trim() || 'open',
+        due_date: String(dueDate).trim() || null,
+        notes: String(notes).trim() || null
+      };
+
+      if (!payload.chapter || !payload.owner || !payload.title) {
+        _setTaskMessage('Chapter, owner, and title are required.', 'error');
+        return;
+      }
+
+      try {
+        var response = await fetch(DASHBOARD_API_BASE + '/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Create failed');
+        form.reset();
+        var statusInput = _el('task-status');
+        if (statusInput) statusInput.value = 'open';
+        _setTaskMessage('Task added.', 'ok');
+        await window.loadTasks();
+      } catch (_) {
+        _setTaskMessage('Failed to add task.', 'error');
+      }
+    });
+  }
+
   async function loadDashboardData() {
     try {
       var response = await fetch(DASHBOARD_API_BASE + '/dashboard');
@@ -1582,6 +1814,7 @@ Installation start date: [date]</pre></div>
   // ---- Init on DOM ready ----
   function _init() {
     hydrateStaticDates();
+    _wireTaskForm();
 
     var hash = window.location.hash.replace('#','');
     if (hash.indexOf('chapter/') === 0) {
@@ -1592,6 +1825,7 @@ Installation start date: [date]</pre></div>
       window.showMainPanel('dsu');
     }
     loadDashboardData();
+    window.loadTasks();
   }
 
   if (document.readyState === 'loading') {
