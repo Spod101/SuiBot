@@ -867,6 +867,10 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
   if (command === "/updatetask" || command === "/edittask") normalized = "/task_update";
   if (command === "/deletetask" || command === "/removetask") normalized = "/task_delete";
   if (command === "/listtasks" || command === "/showtasks") normalized = "/tasks";
+  if (command === "/add") normalized = "/task_add";
+  if (command === "/update" || command === "/edit") normalized = "/task_update";
+  if (command === "/delete" || command === "/remove") normalized = "/task_delete";
+  if (command === "/list" || command === "/show") normalized = "/tasks";
 
   function formatSection(title: string, lines: string[]): string {
     return [title, "", ...lines].join("\n");
@@ -908,6 +912,10 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "/dsu - Show DSU",
       "/risk - Show open risk updates",
       "/risks - Alias of /risk",
+      "/add - Add a task (short)",
+      "/update - Update a task (short)",
+      "/delete - Delete a task by ID (short)",
+      "/list - Show latest tasks (short)",
       "/tasks or /task list - Show latest tasks",
       "/task add - Add a task (easy command)",
       "/task update - Update a task (easy command)",
@@ -917,16 +925,16 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "Legacy commands (still supported): /task_add, /task_update, /task_delete",
       "",
       "You can send task commands in either format:",
-      "- Positional: /task add chapter | owner | title | due_date(optional) | notes(optional)",
-      "- Freeform: /task add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
+      "- Positional: /add chapter | owner | title | due_date(optional) | notes(optional)",
+      "- Freeform: /add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
       "",
       "Update examples:",
-      "- Positional: /task update 3f9b2c1a | in progress | Permit follow-up done",
-      "- Freeform: /task update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+      "- Positional: /update 3f9b2c1a | in progress | Permit follow-up done",
+      "- Freeform: /update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
       "",
       "Delete examples:",
-      "- /task delete 3f9b2c1a",
-      "- /task delete id: 3f9b2c1a",
+      "- /delete 3f9b2c1a",
+      "- /delete id: 3f9b2c1a",
     ]);
   }
 
