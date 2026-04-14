@@ -838,8 +838,35 @@ async function handleTelegramWebhook(request: Request) {
 }
 
 async function handleTelegramCommand(commandText: string): Promise<string> {
-  const [command, ...tail] = commandText.split(" ");
-  const normalized = command.toLowerCase();
+  const tokens = commandText.trim().split(/\s+/).filter(Boolean);
+  const command = (tokens[0] || "").toLowerCase();
+  const subcommand = (tokens[1] || "").toLowerCase();
+  let normalized = command;
+  let tail = tokens.slice(1);
+
+  if (command === "/task") {
+    if (subcommand === "add") {
+      normalized = "/task_add";
+      tail = tokens.slice(2);
+    } else if (subcommand === "update" || subcommand === "edit") {
+      normalized = "/task_update";
+      tail = tokens.slice(2);
+    } else if (subcommand === "delete" || subcommand === "remove") {
+      normalized = "/task_delete";
+      tail = tokens.slice(2);
+    } else if (subcommand === "list" || subcommand === "show") {
+      normalized = "/tasks";
+      tail = tokens.slice(2);
+    } else if (subcommand === "help") {
+      normalized = "/help";
+      tail = tokens.slice(2);
+    }
+  }
+
+  if (command === "/addtask") normalized = "/task_add";
+  if (command === "/updatetask" || command === "/edittask") normalized = "/task_update";
+  if (command === "/deletetask" || command === "/removetask") normalized = "/task_delete";
+  if (command === "/listtasks" || command === "/showtasks") normalized = "/tasks";
 
   function formatSection(title: string, lines: string[]): string {
     return [title, "", ...lines].join("\n");
@@ -881,23 +908,25 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "/dsu - Show DSU",
       "/risk - Show open risk updates",
       "/risks - Alias of /risk",
-      "/tasks - Show latest tasks",
-      "/task_add - Add a task (supports freeform)",
-      "/task_update - Update a task (supports freeform)",
-      "/task_delete - Delete a task by ID (supports ID prefix)",
+      "/tasks or /task list - Show latest tasks",
+      "/task add - Add a task (easy command)",
+      "/task update - Update a task (easy command)",
+      "/task delete - Delete a task by ID (easy command)",
       "/help - Show this help message",
       "",
+      "Legacy commands (still supported): /task_add, /task_update, /task_delete",
+      "",
       "You can send task commands in either format:",
-      "- Positional: /task_add chapter | owner | title | due_date(optional) | notes(optional)",
-      "- Freeform: /task_add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
+      "- Positional: /task add chapter | owner | title | due_date(optional) | notes(optional)",
+      "- Freeform: /task add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
       "",
       "Update examples:",
-      "- Positional: /task_update 3f9b2c1a | in progress | Permit follow-up done",
-      "- Freeform: /task_update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+      "- Positional: /task update 3f9b2c1a | in progress | Permit follow-up done",
+      "- Freeform: /task update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
       "",
       "Delete examples:",
-      "- /task_delete 3f9b2c1a",
-      "- /task_delete id: 3f9b2c1a",
+      "- /task delete 3f9b2c1a",
+      "- /task delete id: 3f9b2c1a",
     ]);
   }
 
