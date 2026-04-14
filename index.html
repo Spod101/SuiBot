@@ -666,7 +666,7 @@
       <div class="info-box" style="margin-bottom:12px;"><strong>Live Task CRUD</strong> — Add, update, and remove tasks here. This writes directly to the same API used by Telegram commands.</div>
       <form id="task-live-form" class="task-live-form">
         <input id="task-chapter" type="text" placeholder="Chapter (e.g. Iloilo)" required>
-        <input id="task-owner" type="text" placeholder="Owner (e.g. Ana)" required>
+        <input id="task-owner" type="text" placeholder="Assignee (e.g. Ana)" required>
         <input id="task-title" type="text" placeholder="Task title" required>
         <select id="task-status">
           <option value="open">open</option>
@@ -1659,13 +1659,14 @@ Installation start date: [date]</pre></div>
               '<div class="task-live-item-id">ID: ' + shortId + '</div>' +
             '</div>' +
             '<div class="task-live-actions">' +
+              '<button class="btn-primary" type="button" onclick="window.assignTask(\'' + _escapeHtml(id) + '\')">Assign</button>' +
               '<button class="btn-ghost" type="button" onclick="window.editTask(\'' + _escapeHtml(id) + '\')">Edit</button>' +
               '<button class="btn-danger" type="button" onclick="window.deleteTask(\'' + _escapeHtml(id) + '\')">Delete</button>' +
             '</div>' +
           '</div>' +
           '<div class="task-live-meta">' +
             '<span>Chapter: ' + _escapeHtml(item.chapter || 'n/a') + '</span>' +
-            '<span>Owner: ' + _escapeHtml(item.owner || 'n/a') + '</span>' +
+            '<span>Assignee: ' + _escapeHtml(item.owner || 'n/a') + '</span>' +
             '<span>Status: ' + _escapeHtml(item.status || 'n/a') + '</span>' +
             '<span>Due: ' + due + '</span>' +
           '</div>' +
@@ -1699,7 +1700,7 @@ Installation start date: [date]</pre></div>
     if (nextStatus === null) return;
     var nextTitle = window.prompt('Update title', task.title || '');
     if (nextTitle === null) return;
-    var nextOwner = window.prompt('Update owner', task.owner || '');
+    var nextOwner = window.prompt('Update assignee', task.owner || '');
     if (nextOwner === null) return;
     var nextChapter = window.prompt('Update chapter', task.chapter || '');
     if (nextChapter === null) return;
@@ -1734,6 +1735,36 @@ Installation start date: [date]</pre></div>
       await window.loadTasks();
     } catch (_) {
       _setTaskMessage('Failed to update task.', 'error');
+    }
+  };
+
+  window.assignTask = async function(taskId) {
+    var task = (_taskCache || []).find(function(item) { return item.id === taskId; });
+    if (!task) {
+      _setTaskMessage('Task not found in local cache. Refresh and try again.', 'error');
+      return;
+    }
+
+    var nextAssignee = window.prompt('Assign task to', task.owner || '');
+    if (nextAssignee === null) return;
+    var owner = String(nextAssignee || '').trim();
+    if (!owner) {
+      _setTaskMessage('Assignee cannot be empty.', 'error');
+      return;
+    }
+
+    try {
+      var response = await fetch(DASHBOARD_API_BASE + '/tasks/' + encodeURIComponent(taskId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: owner })
+      });
+
+      if (!response.ok) throw new Error('Assign failed');
+      _setTaskMessage('Task assigned to ' + owner + '.', 'ok');
+      await window.loadTasks();
+    } catch (_) {
+      _setTaskMessage('Failed to assign task.', 'error');
     }
   };
 
@@ -1777,7 +1808,7 @@ Installation start date: [date]</pre></div>
       };
 
       if (!payload.chapter || !payload.owner || !payload.title) {
-        _setTaskMessage('Chapter, owner, and title are required.', 'error');
+        _setTaskMessage('Chapter, assignee, and title are required.', 'error');
         return;
       }
 

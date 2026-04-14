@@ -848,6 +848,9 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
     if (subcommand === "add") {
       normalized = "/task_add";
       tail = tokens.slice(2);
+    } else if (subcommand === "assign") {
+      normalized = "/task_assign";
+      tail = tokens.slice(2);
     } else if (subcommand === "update" || subcommand === "edit") {
       normalized = "/task_update";
       tail = tokens.slice(2);
@@ -864,10 +867,12 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
   }
 
   if (command === "/addtask") normalized = "/task_add";
+  if (command === "/assigntask") normalized = "/task_assign";
   if (command === "/updatetask" || command === "/edittask") normalized = "/task_update";
   if (command === "/deletetask" || command === "/removetask") normalized = "/task_delete";
   if (command === "/listtasks" || command === "/showtasks") normalized = "/tasks";
   if (command === "/add") normalized = "/task_add";
+  if (command === "/assign") normalized = "/task_assign";
   if (command === "/update" || command === "/edit") normalized = "/task_update";
   if (command === "/delete" || command === "/remove") normalized = "/task_delete";
   if (command === "/list" || command === "/show") normalized = "/tasks";
@@ -913,20 +918,26 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       "/risk - Show open risk updates",
       "/risks - Alias of /risk",
       "/add - Add a task (short)",
+      "/assign - Assign a task to someone (short)",
       "/update - Update a task (short)",
       "/delete - Delete a task by ID (short)",
       "/list - Show latest tasks (short)",
       "/tasks or /task list - Show latest tasks",
       "/task add - Add a task (easy command)",
+      "/task assign - Assign a task to someone",
       "/task update - Update a task (easy command)",
       "/task delete - Delete a task by ID (easy command)",
       "/help - Show this help message",
       "",
-      "Legacy commands (still supported): /task_add, /task_update, /task_delete",
+      "Legacy commands (still supported): /task_add, /task_assign, /task_update, /task_delete",
       "",
       "You can send task commands in either format:",
       "- Positional: /add chapter | owner | title | due_date(optional) | notes(optional)",
       "- Freeform: /add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
+      "",
+      "Assign examples:",
+      "- Positional: /assign 3f9b2c1a | Ana",
+      "- Freeform: /assign id: 3f9b2c1a; assignee: Ana",
       "",
       "Update examples:",
       "- Positional: /update 3f9b2c1a | in progress | Permit follow-up done",
@@ -1084,6 +1095,48 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       `Owner: ${data.owner}`,
       `Status: ${data.status}`,
       `Title: ${data.title}`,
+      `Due: ${data.due_date || "n/a"}`,
+    ]);
+  }
+
+  if (normalized === "/task_assign") {
+    const raw = tail.join(" ");
+    const keyValues = parseKeyValueParts(raw);
+    const parts = splitCommandParts(raw);
+
+    const taskRef = (keyValues.id || keyValues.task_id || keyValues.task || parts[0] || "").trim();
+    const assignee = (keyValues.assignee || keyValues.owner || keyValues.lead || parts[1] || "").trim();
+
+    if (!taskRef || !assignee) {
+      return [
+        "I could not parse that assign request clearly.",
+        "Try either:",
+        "- /assign task_id | assignee",
+        "- /assign id: 3f9b2c1a; assignee: Ana",
+      ].join("\n");
+    }
+
+    const taskId = await resolveTaskId(taskRef);
+    if (!taskId) {
+      return `Task not found for reference: ${taskRef}`;
+    }
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ owner: assignee })
+      .eq("id", taskId)
+      .select("id, chapter, owner, title, status, due_date")
+      .single();
+
+    if (error || !data) {
+      return `Failed to assign task: ${error?.message || "unknown error"}`;
+    }
+
+    return formatSection("Task Assigned", [
+      `Done. I assigned task ${String(data.id).slice(0, 8)} to ${data.owner}.`,
+      `Chapter: ${data.chapter}`,
+      `Title: ${data.title}`,
+      `Status: ${data.status}`,
       `Due: ${data.due_date || "n/a"}`,
     ]);
   }

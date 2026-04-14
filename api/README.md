@@ -65,5 +65,5 @@ Without webhook secret (allowed for testing):
 
 - GET /dashboard returns dashboard summary and timeline countdowns using Asia/Manila date/time.
 - POST /updates still saves to Supabase even if Telegram fails.
-- Telegram command support: /start, /help, /latest, /risk, /tasks, /add, /update, /delete, /list (also supports /task add, /task update, /task delete, plus legacy /task_add, /task_update, /task_delete)
+- Telegram command support: /start, /help, /latest, /risk, /tasks, /add, /assign, /update, /delete, /list (also supports /task add, /task assign, /task update, /task delete, plus legacy /task_add, /task_assign, /task_update, /task_delete)
 - Webhook secret enforcement is optional. If TELEGRAM_WEBHOOK_SECRET is not set, webhook calls are accepted without secret verification.
