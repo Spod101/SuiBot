@@ -419,7 +419,7 @@ async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient>): Pro
   const technicalText = configText(config, ["technical_update", "technical_status"], technicalDefault);
 
   const lines: string[] = [
-    "MONDAY MORNING DSU",
+    "DSU",
     formatManilaLongDate(),
     "",
     "📊 KPI & OVERVIEW",
@@ -821,18 +821,59 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
   const [command, ...tail] = commandText.split(" ");
   const normalized = command.toLowerCase();
 
+  function formatSection(title: string, lines: string[]): string {
+    return [title, "", ...lines].join("\n");
+  }
+
+  function splitCommandParts(raw: string): string[] {
+    const input = raw.trim();
+    if (!input) return [];
+    if (input.includes("|")) {
+      return input.split("|").map((s) => s.trim()).filter(Boolean);
+    }
+    if (input.includes(";")) {
+      return input.split(";").map((s) => s.trim()).filter(Boolean);
+    }
+    return [input];
+  }
+
+  function parseKeyValueParts(raw: string): Record<string, string> {
+    const map: Record<string, string> = {};
+    const parts = splitCommandParts(raw);
+
+    for (const part of parts) {
+      const idx = part.indexOf(":");
+      if (idx <= 0) continue;
+
+      const key = part.slice(0, idx).trim().toLowerCase().replace(/\s+/g, "_");
+      const value = part.slice(idx + 1).trim();
+      if (!value) continue;
+      map[key] = value;
+    }
+
+    return map;
+  }
+
   if (normalized === "/start" || normalized === "/help") {
-    return [
-      "Available commands:",
-      "/latest - show Monday Morning DSU format",
-      "/dsu - show Monday Morning DSU format",
-      "/risk - show open risk updates",
-      "/risks - alias for /risk",
-      "/tasks - show latest tasks",
-      "/task_add chapter | owner | title | due_date | notes",
-      "/task_update task_id | status | notes",
-      "/help - show this help",
-    ].join("\n");
+    return formatSection("Dashboard Bot Commands", [
+      "Here are the commands you can use:",
+      "/latest - Show DSU",
+      "/dsu - Show DSU",
+      "/risk - Show open risk updates",
+      "/risks - Alias of /risk",
+      "/tasks - Show latest tasks",
+      "/task_add - Add a task (supports freeform)",
+      "/task_update - Update a task (supports freeform)",
+      "/help - Show this help message",
+      "",
+      "You can send task commands in either format:",
+      "- Positional: /task_add chapter | owner | title | due_date(optional) | notes(optional)",
+      "- Freeform: /task_add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
+      "",
+      "Update examples:",
+      "- Positional: /task_update 3f9b2c1a | in progress | Permit follow-up done",
+      "- Freeform: /task_update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+    ]);
   }
 
   const supabase = supabaseClient();
@@ -876,22 +917,27 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
         const fallback = await listDashboardEvents({ limit: 10, risksOnly: true, openOnly: true });
         if (!fallback.length) return "No open risk updates.";
 
-        const lines = ["Open risk updates (from dashboard events):"];
+        const lines = ["Here are the current risk items (from dashboard events):"];
         for (const item of fallback) {
-          lines.push(`- ${item.chapter} | ${item.status} | ${item.title}`);
+          lines.push(`- ${item.chapter}`);
+          lines.push(`  Status: ${item.status}`);
+          lines.push(`  Title: ${item.title}`);
         }
-        return lines.join("\n");
+        return formatSection("Open Risk Updates", lines);
       } catch (fallbackError) {
         const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
         return `Failed to load risk updates: ${message}`;
       }
     }
 
-    const lines = ["Open risk updates:"];
+    const lines = ["Here are the current open risk updates:"];
     for (const item of data) {
-      lines.push(`- ${item.chapter} | ${item.status} | ${item.owner} | ${item.title}`);
+      lines.push(`- ${item.chapter}`);
+      lines.push(`  Status: ${item.status}`);
+      lines.push(`  Owner: ${item.owner}`);
+      lines.push(`  Title: ${item.title}`);
     }
-    return lines.join("\n");
+    return formatSection("Open Risk Updates", lines);
   }
 
   if (normalized === "/tasks") {
@@ -908,32 +954,51 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
         const fallback = await listDashboardEvents({ limit: 10, openOnly: true });
         if (!fallback.length) return "No tasks yet.";
 
-        const lines = ["Latest tasks (derived from open dashboard events):"];
+        const lines = ["Here are the latest tasks (from open dashboard events):"];
         for (const item of fallback) {
-          lines.push(`- ${item.chapter} | ${item.status} | ${item.title} | due: ${item.dueDate || "n/a"}`);
+          lines.push(`- ${item.chapter}`);
+          lines.push(`  Status: ${item.status}`);
+          lines.push(`  Title: ${item.title}`);
+          lines.push(`  Due: ${item.dueDate || "n/a"}`);
         }
-        return lines.join("\n");
+        return formatSection("Latest Tasks", lines);
       } catch (fallbackError) {
         const message = fallbackError instanceof Error ? fallbackError.message : "fallback failed";
         return `Failed to load tasks: ${message}`;
       }
     }
 
-    const lines = ["Latest tasks:"];
+    const lines = ["Here are your latest tasks:"];
     for (const item of data) {
-      lines.push(`- ${String(item.id).slice(0, 8)} | ${item.chapter} | ${item.status} | ${item.title} | due: ${item.due_date || "n/a"}`);
+      lines.push(`- Task ID: ${String(item.id).slice(0, 8)}`);
+      lines.push(`  Chapter: ${item.chapter}`);
+      lines.push(`  Status: ${item.status}`);
+      lines.push(`  Title: ${item.title}`);
+      lines.push(`  Due: ${item.due_date || "n/a"}`);
     }
-    return lines.join("\n");
+    return formatSection("Latest Tasks", lines);
   }
 
   if (normalized === "/task_add") {
     const raw = tail.join(" ");
-    const parts = raw.split("|").map((s) => s.trim());
-    if (parts.length < 3) {
-      return "Usage: /task_add chapter | owner | title | due_date(optional) | notes(optional)";
+    const keyValues = parseKeyValueParts(raw);
+    const parts = splitCommandParts(raw);
+
+    const chapter = (keyValues.chapter || keyValues.group || keyValues.team || parts[0] || "").trim();
+    const owner = (keyValues.owner || keyValues.lead || keyValues.assignee || parts[1] || "").trim();
+    const title = (keyValues.title || keyValues.task || keyValues.name || parts[2] || "").trim();
+    const dueDate = (keyValues.due || keyValues.due_date || keyValues.deadline || parts[3] || "").trim();
+    const notes = (keyValues.notes || keyValues.note || parts[4] || "").trim();
+
+    if (!chapter || !owner || !title) {
+      return [
+        "I could not parse that task clearly.",
+        "Try either:",
+        "- /task_add chapter | owner | title | due_date(optional) | notes(optional)",
+        "- /task_add chapter: Zamboanga; owner: Ana; title: Prepare venue; due: 2026-04-20; notes: Waiting for permit",
+      ].join("\n");
     }
 
-    const [chapter, owner, title, dueDate, notes] = parts;
     const { data, error } = await supabase
       .from("tasks")
       .insert({
@@ -951,17 +1016,34 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       return `Failed to add task: ${error?.message || "unknown error"}`;
     }
 
-    return `Task created: ${String(data.id).slice(0, 8)} | ${data.chapter} | ${data.status} | ${data.title}`;
+    return formatSection("Task Added", [
+      `Done. I added a new task for ${data.chapter}.`,
+      `Task ID: ${String(data.id).slice(0, 8)}`,
+      `Owner: ${data.owner}`,
+      `Status: ${data.status}`,
+      `Title: ${data.title}`,
+      `Due: ${data.due_date || "n/a"}`,
+    ]);
   }
 
   if (normalized === "/task_update") {
     const raw = tail.join(" ");
-    const parts = raw.split("|").map((s) => s.trim());
-    if (parts.length < 2) {
-      return "Usage: /task_update task_id | status | notes(optional)";
+    const keyValues = parseKeyValueParts(raw);
+    const parts = splitCommandParts(raw);
+
+    const taskRef = (keyValues.id || keyValues.task_id || keyValues.task || parts[0] || "").trim();
+    const status = (keyValues.status || keyValues.state || parts[1] || "").trim();
+    const notes = (keyValues.notes || keyValues.note || parts[2] || "").trim();
+
+    if (!taskRef || !status) {
+      return [
+        "I could not parse that update clearly.",
+        "Try either:",
+        "- /task_update task_id | status | notes(optional)",
+        "- /task_update id: 3f9b2c1a; status: in progress; notes: Permit follow-up done",
+      ].join("\n");
     }
 
-    const [taskRef, status, notes] = parts;
     const taskId = await resolveTaskId(taskRef);
     if (!taskId) {
       return `Task not found for reference: ${taskRef}`;
@@ -981,10 +1063,18 @@ async function handleTelegramCommand(commandText: string): Promise<string> {
       return `Failed to update task: ${error?.message || "unknown error"}`;
     }
 
-    return `Task updated: ${String(data.id).slice(0, 8)} | ${data.status} | ${data.chapter} | ${data.title}`;
+    return formatSection("Task Updated", [
+      `Done. I updated task ${String(data.id).slice(0, 8)}.`,
+      `Status: ${data.status}`,
+      `Chapter: ${data.chapter}`,
+      `Title: ${data.title}`,
+    ]);
   }
 
-  return "Unknown command. Try /help.";
+  return formatSection("Unknown Command", [
+    "I did not recognize that command.",
+    "Use /help to see the full command list and examples.",
+  ]);
 }
 
 Deno.serve(async (request) => {
