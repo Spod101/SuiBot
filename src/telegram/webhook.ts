@@ -19,7 +19,8 @@ export async function handleTelegramWebhook(request: Request): Promise<Response>
   if (!text || !chatId || !text.startsWith('/')) return jsonResponse({ ok: true, ignored: true })
 
   const reply = await handleTelegramCommand(text)
-  await sendTelegramMessage(String(chatId), reply)
+  const sent = await sendTelegramMessage(String(chatId), reply)
+  if (!sent.sent) return jsonResponse({ ok: false, error: sent.error || 'Failed to send Telegram reply' }, 500)
 
   return jsonResponse({ ok: true })
 }

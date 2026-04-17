@@ -1,6 +1,48 @@
 import { escapeHtml } from "../lib/validate.ts";
 import type { TelegramResult, UpdateRow } from "../types.ts";
 
+function chunkTelegramMessage(text: string, maxLength = 3900): string[] {
+  const normalized = String(text || "");
+  if (normalized.length <= maxLength) return [normalized];
+
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < normalized.length) {
+    let end = Math.min(start + maxLength, normalized.length);
+    const breakAt = normalized.lastIndexOf("\n", end);
+    if (breakAt > start + 200) end = breakAt;
+    chunks.push(normalized.slice(start, end).trim());
+    start = end;
+  }
+
+  return chunks.filter(Boolean);
+}
+
+async function postTelegramMessage(
+  token: string,
+  payload: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string; messageId?: number }> {
+  const response = await fetch(
+    `https://api.telegram.org/bot${token}/sendMessage`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.ok) {
+    return {
+      ok: false,
+      error: String(result?.description || `Telegram error ${response.status}`),
+    };
+  }
+
+  return { ok: true, messageId: result.result?.message_id };
+}
+
 export async function sendTelegramMessage(
   chatId: string,
   text: string,
@@ -8,29 +50,36 @@ export async function sendTelegramMessage(
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
   if (!token) return { sent: false, error: "TELEGRAM_BOT_TOKEN is not set" };
 
-  const response = await fetch(
-    `https://api.telegram.org/bot${token}/sendMessage`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
-    },
-  );
+  const chunks = chunkTelegramMessage(text);
+  let lastMessageId: number | undefined;
 
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.ok) {
-    return {
-      sent: false,
-      error: String(result?.description || `Telegram error ${response.status}`),
-    };
+  for (const chunk of chunks) {
+    const primary = await postTelegramMessage(token, {
+      chat_id: chatId,
+      text: chunk,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    });
+
+    if (primary.ok) {
+      lastMessageId = primary.messageId;
+      continue;
+    }
+
+    const parseFailed = String(primary.error || "").toLowerCase().includes("can't parse entities");
+    if (!parseFailed) return { sent: false, error: primary.error };
+
+    const fallback = await postTelegramMessage(token, {
+      chat_id: chatId,
+      text: chunk,
+      disable_web_page_preview: true,
+    });
+
+    if (!fallback.ok) return { sent: false, error: fallback.error || primary.error };
+    lastMessageId = fallback.messageId;
   }
 
-  return { sent: true, messageId: result.result?.message_id };
+  return { sent: true, messageId: lastMessageId };
 }
 
 /** Send a formatted notification to the configured chat whenever a new update is created. */
