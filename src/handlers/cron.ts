@@ -4,7 +4,7 @@ import { buildDsuMessage } from '../telegram/dsu'
 import { sendTelegramMessage } from '../telegram/send'
 
 export async function handleCronDsu(request: Request): Promise<Response> {
-  const cronSecret = process.env.CRON_SECRET
+  const cronSecret = String(process.env.CRON_SECRET || '').trim()
   if (cronSecret) {
     const header = request.headers.get('x-cron-secret')
     const query  = new URL(request.url).searchParams.get('secret')

@@ -3,6 +3,11 @@ import { supabaseClient } from "../lib/client.ts";
 import { buildDsuMessage } from "../telegram/dsu.ts";
 import { sendTelegramMessage } from "../telegram/send.ts";
 
+function envValue(name: string): string | undefined {
+  const deno = (globalThis as { Deno?: { env?: { get?: (key: string) => string | undefined } } }).Deno;
+  return deno?.env?.get?.(name);
+}
+
 /**
  * GET or POST /cron/dsu
  *
@@ -15,7 +20,7 @@ import { sendTelegramMessage } from "../telegram/send.ts";
  */
 export async function handleCronDsu(request: Request): Promise<Response> {
   // ── Auth ────────────────────────────────────────────────────────────────────
-  const cronSecret = Deno.env.get("CRON_SECRET");
+  const cronSecret = String(envValue("CRON_SECRET") || "").trim();
   if (cronSecret) {
     const header = request.headers.get("x-cron-secret");
     const query  = new URL(request.url).searchParams.get("secret");
@@ -25,7 +30,7 @@ export async function handleCronDsu(request: Request): Promise<Response> {
   }
 
   // ── Send ────────────────────────────────────────────────────────────────────
-  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  const chatId = envValue("TELEGRAM_CHAT_ID");
   if (!chatId) {
     return jsonResponse({ error: "TELEGRAM_CHAT_ID is not set" }, 500);
   }
