@@ -15,6 +15,7 @@ import { handleDashboard, handleMetrics } from "./handlers/dashboard.ts";
 import { handleListUpdates, handleCreateUpdate } from "./handlers/updates.ts";
 import { handleListTasks, handleCreateTask, handleUpdateTask, handleDeleteTask } from "./handlers/tasks.ts";
 import { handleTelegramWebhook } from "./telegram/webhook.ts";
+import { handleCronDsu } from "./handlers/cron.ts";
 
 Deno.serve(async (request) => {
   // Handle CORS pre-flight
@@ -34,6 +35,7 @@ Deno.serve(async (request) => {
     if (method === "GET"  && route === "/tasks")            return await handleListTasks(request);
     if (method === "POST" && route === "/tasks")            return await handleCreateTask(request);
     if (method === "POST" && route === "/telegram/webhook") return await handleTelegramWebhook(request);
+    if ((method === "GET" || method === "POST") && route === "/cron/dsu") return await handleCronDsu(request);
 
     const taskId = routeId(route, "/tasks");
     if (taskId) {
