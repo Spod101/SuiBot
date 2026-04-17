@@ -154,7 +154,7 @@ export async function buildDsuMessage(
 
   // Build message lines
   const lines: string[] = [
-    "DSU",
+    "MONDAY MORNING DSU",
     formatManilaLongDate(),
     "",
     "📊 KPI & OVERVIEW",
@@ -169,7 +169,7 @@ export async function buildDsuMessage(
   ];
 
   if (!scheduleEvents.length) {
-    lines.push("No camp schedule data found.");
+    lines.push("No camp schedule data found in Supabase.");
   } else {
     for (const item of scheduleEvents.slice(0, 8)) {
       const venue = configText(
@@ -222,7 +222,7 @@ export async function buildDsuMessage(
         lines.push(`${escapeHtml(e.chapter)}: ${escapeHtml(e.event_name)} (${escapeHtml(e.status)}).`);
       }
     } else {
-      lines.push("No high risks recorded.");
+      lines.push("No high risks recorded in Supabase.");
     }
   }
 
@@ -236,7 +236,7 @@ export async function buildDsuMessage(
   });
 
   if (!openTasks.length) {
-    lines.push("No open tasks found.");
+    lines.push("No open tasks found in Supabase.");
   } else {
     const byChapter = new Map<string, TaskRow[]>();
     for (const task of openTasks.slice(0, 24)) {

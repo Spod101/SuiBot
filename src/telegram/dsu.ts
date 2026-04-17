@@ -94,7 +94,7 @@ export async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient
   const technicalText     = configText(config, ['technical_update', 'technical_status'], technicalDefault)
 
   const lines: string[] = [
-    'DSU', formatManilaLongDate(), '',
+    'MONDAY MORNING DSU', formatManilaLongDate(), '',
     '📊 KPI & OVERVIEW',
     `Camps: ${completedCamps}/${totalCamps} Completed`,
     `Project Completion Tracker: ${projectCompletion} Projects Completed`,
@@ -106,7 +106,7 @@ export async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient
   ]
 
   if (!scheduleEvents.length) {
-    lines.push('No camp schedule data found.')
+    lines.push('No camp schedule data found in Supabase.')
   } else {
     for (const item of scheduleEvents.slice(0, 8)) {
       const venue = configText(config, [`event_${item.slug}_venue`, `${item.slug}_venue`], 'TBC')
@@ -132,7 +132,7 @@ export async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient
     if (fallbackRisks.length) {
       for (const e of fallbackRisks) lines.push(`${escapeHtml(e.chapter)}: ${escapeHtml(e.event_name)} (${escapeHtml(e.status)}).`)
     } else {
-      lines.push('No high risks recorded.')
+      lines.push('No high risks recorded in Supabase.')
     }
   }
 
@@ -145,7 +145,7 @@ export async function buildDsuMessage(supabase: ReturnType<typeof supabaseClient
   })
 
   if (!openTasks.length) {
-    lines.push('No open tasks found.')
+    lines.push('No open tasks found in Supabase.')
   } else {
     const byChapter = new Map<string, TaskRow[]>()
     for (const task of openTasks.slice(0, 24)) {
