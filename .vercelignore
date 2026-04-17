@@ -1,0 +1,4 @@
+# Supabase Edge Functions are deployed via Supabase CLI, not Vercel.
+# Excluding this folder prevents Vercel from treating Deno/Supabase
+# TypeScript files as Node.js serverless functions.
+api/
