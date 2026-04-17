@@ -10,6 +10,11 @@ const app = new Hono()
 
 app.use('*', cors())
 
+app.onError((error, c) => {
+	const message = error instanceof Error ? error.message : 'Unexpected server error'
+	return c.json({ ok: false, error: message }, 500)
+})
+
 app.get('/api/health', (c) => c.json({ ok: true, timestamp: new Date().toISOString() }))
 
 app.get('/api/dashboard', () => handleDashboard())
