@@ -1,5 +1,11 @@
 import { escapeHtml } from '../lib/validate'
+import type { TelegramInlineKeyboardMarkup } from './buttons'
 import type { TelegramResult, UpdateRow } from '../types'
+
+type SendTelegramOptions = {
+  parseMode?: 'HTML'
+  replyMarkup?: TelegramInlineKeyboardMarkup
+}
 
 function chunkTelegramMessage(text: string, maxLength = 3900): string[] {
   const normalized = String(text || '')
@@ -35,6 +41,14 @@ async function postTelegramMessage(token: string, payload: Record<string, unknow
 }
 
 export async function sendTelegramMessage(chatId: string, text: string): Promise<TelegramResult> {
+  return sendTelegramMessageWithOptions(chatId, text, { parseMode: 'HTML' })
+}
+
+export async function sendTelegramMessageWithOptions(
+  chatId: string,
+  text: string,
+  options?: SendTelegramOptions,
+): Promise<TelegramResult> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return { sent: false, error: 'TELEGRAM_BOT_TOKEN is not set' }
 
@@ -42,12 +56,15 @@ export async function sendTelegramMessage(chatId: string, text: string): Promise
   let lastMessageId: number | undefined
 
   for (const chunk of chunks) {
-    const primary = await postTelegramMessage(token, {
+    const primaryPayload: Record<string, unknown> = {
       chat_id: chatId,
       text: chunk,
-      parse_mode: 'HTML',
       disable_web_page_preview: true,
-    })
+    }
+    if (options?.parseMode !== undefined) primaryPayload.parse_mode = options.parseMode
+    if (options?.replyMarkup) primaryPayload.reply_markup = options.replyMarkup
+
+    const primary = await postTelegramMessage(token, primaryPayload)
 
     if (primary.ok) {
       lastMessageId = primary.messageId
@@ -57,17 +74,30 @@ export async function sendTelegramMessage(chatId: string, text: string): Promise
     const parseFailed = String(primary.error || '').toLowerCase().includes('can\'t parse entities')
     if (!parseFailed) return { sent: false, error: primary.error }
 
-    const fallback = await postTelegramMessage(token, {
+    const fallbackPayload: Record<string, unknown> = {
       chat_id: chatId,
       text: chunk,
       disable_web_page_preview: true,
-    })
+    }
+    if (options?.replyMarkup) fallbackPayload.reply_markup = options.replyMarkup
 
+    const fallback = await postTelegramMessage(token, fallbackPayload)
     if (!fallback.ok) return { sent: false, error: fallback.error || primary.error }
     lastMessageId = fallback.messageId
   }
 
   return { sent: true, messageId: lastMessageId }
+}
+
+export async function answerTelegramCallback(callbackQueryId: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  if (!token) return
+
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackQueryId }),
+  }).catch(() => null)
 }
 
 export async function notifyTelegram(update: UpdateRow): Promise<TelegramResult> {

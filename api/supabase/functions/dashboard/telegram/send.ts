@@ -1,5 +1,16 @@
 import { escapeHtml } from "../lib/validate.ts";
+import type { TelegramInlineKeyboardMarkup } from "./buttons.ts";
 import type { TelegramResult, UpdateRow } from "../types.ts";
+
+type SendTelegramOptions = {
+  parseMode?: "HTML";
+  replyMarkup?: TelegramInlineKeyboardMarkup;
+};
+
+function envValue(name: string): string | undefined {
+  const deno = (globalThis as { Deno?: { env?: { get?: (key: string) => string | undefined } } }).Deno;
+  return deno?.env?.get?.(name);
+}
 
 function chunkTelegramMessage(text: string, maxLength = 3900): string[] {
   const normalized = String(text || "");
@@ -47,19 +58,30 @@ export async function sendTelegramMessage(
   chatId: string,
   text: string,
 ): Promise<TelegramResult> {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  return sendTelegramMessageWithOptions(chatId, text, { parseMode: "HTML" });
+}
+
+export async function sendTelegramMessageWithOptions(
+  chatId: string,
+  text: string,
+  options?: SendTelegramOptions,
+): Promise<TelegramResult> {
+  const token = envValue("TELEGRAM_BOT_TOKEN");
   if (!token) return { sent: false, error: "TELEGRAM_BOT_TOKEN is not set" };
 
   const chunks = chunkTelegramMessage(text);
   let lastMessageId: number | undefined;
 
   for (const chunk of chunks) {
-    const primary = await postTelegramMessage(token, {
+    const primaryPayload: Record<string, unknown> = {
       chat_id: chatId,
       text: chunk,
-      parse_mode: "HTML",
       disable_web_page_preview: true,
-    });
+    };
+    if (options?.parseMode !== undefined) primaryPayload.parse_mode = options.parseMode;
+    if (options?.replyMarkup) primaryPayload.reply_markup = options.replyMarkup;
+
+    const primary = await postTelegramMessage(token, primaryPayload);
 
     if (primary.ok) {
       lastMessageId = primary.messageId;
@@ -69,12 +91,14 @@ export async function sendTelegramMessage(
     const parseFailed = String(primary.error || "").toLowerCase().includes("can't parse entities");
     if (!parseFailed) return { sent: false, error: primary.error };
 
-    const fallback = await postTelegramMessage(token, {
+    const fallbackPayload: Record<string, unknown> = {
       chat_id: chatId,
       text: chunk,
       disable_web_page_preview: true,
-    });
+    };
+    if (options?.replyMarkup) fallbackPayload.reply_markup = options.replyMarkup;
 
+    const fallback = await postTelegramMessage(token, fallbackPayload);
     if (!fallback.ok) return { sent: false, error: fallback.error || primary.error };
     lastMessageId = fallback.messageId;
   }
@@ -82,9 +106,20 @@ export async function sendTelegramMessage(
   return { sent: true, messageId: lastMessageId };
 }
 
+export async function answerTelegramCallback(callbackQueryId: string): Promise<void> {
+  const token = envValue("TELEGRAM_BOT_TOKEN");
+  if (!token) return;
+
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId }),
+  }).catch(() => null);
+}
+
 /** Send a formatted notification to the configured chat whenever a new update is created. */
 export async function notifyTelegram(update: UpdateRow): Promise<TelegramResult> {
-  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  const chatId = envValue("TELEGRAM_CHAT_ID");
   if (!chatId) return { sent: false, error: "TELEGRAM_CHAT_ID is not set" };
 
   const lines = [
